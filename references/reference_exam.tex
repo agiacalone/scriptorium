@@ -31,25 +31,36 @@
 
 % Per-student exam ID macros (see plans/specs/2026-05-13-per-student-exam-id-design).
 % Defaults to empty for backward-compat with variant-only builds.
-\providecommand{\studentname}{}
-\providecommand{\studentserial}{}
+%
+% NB: \@ifundefined+\def is used here (not \providecommand) so the default empty
+% value produces a non-\long macro, which \ifx-compares equal to \@empty below.
+% \providecommand{}{} produces \long macro:-> which is NOT \ifx-equal to \@empty,
+% causing the conditional to always render the "· ID" / "Issued to:" branches.
+\makeatletter
+\@ifundefined{studentname}{\def\studentname{}}{}
+\@ifundefined{studentserial}{\def\studentserial{}}{}
+\makeatother
 
 % \issuedto --- small grey "Issued to: <name>" line above the NAME block.
 % Renders only if \studentname is set.
+\makeatletter
 \newcommand{\issuedto}{%
-  \ifx\studentname\empty\else
+  \ifx\studentname\@empty\else
     \noindent{\sffamily\footnotesize\color{black!55}Issued to: \studentname}%
     \par\vspace{4pt}%
   \fi%
 }
+\makeatother
 
 % --- Page footer: serial on the right, optional per-student ID appended ---
 \fancyfoot[L]{}
 \fancyfoot[C]{\thepage}
+\makeatletter
 \fancyfoot[R]{\textit{\footnotesize Serial \texttt{\examserial}%
-  \ifx\studentserial\empty\else
+  \ifx\studentserial\@empty\else
     \ \textperiodcentered\ ID \texttt{\studentserial}%
   \fi}}
+\makeatother
 \renewcommand{\headrulewidth}{0pt}
 
 % --- Code listing style ---
