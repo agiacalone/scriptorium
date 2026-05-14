@@ -1,84 +1,136 @@
-"use strict";
+// Study-questions generator — kept-artifact emitter for `<topic>_study_questions.md`.
+//
+// V1 strategy: emit `byRole.get('self-quiz')` items in source order as a flat
+// numbered list. The fixture's #self-quiz prompts are already 10-and-tiered by
+// the author (recall → apply → analyze) so we don't auto-classify here. Future
+// v2 may group by `#bloom/*` tags once authors start adding them to self-quiz
+// items.
+//
+// Output structure (matches the kept artifact contract — see vault file
+// classes/326/file_systems_abstraction_study_questions.md):
+//   ---
+//   <frontmatter>
+//   ---
+//   # <Topic> — Study Questions
+//   **Course:** <course> — <topic>
+//   ## Reading Assignment
+//   <boilerplate>
+//   1. <Q1>
+//   ...
+//   ## Adversarial — required        (only if adversarial-thinking: true AND
+//                                     #self-quiz #adversarial items exist)
+//   1. ...
+//   ## Deliverables
+//   <boilerplate>
 
-const fs = require("fs");
-const path = require("path");
-const { topicSlug } = require("../lib/context");
+import { applyTermFilter } from './_filter.js';
 
-// Fixed deliverables boilerplate — copied exactly from course template
-const DELIVERABLES = `### Deliverables
-* Your writeup file *must* be done in [Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax) format and must be included in the repository as a separate file. View the file [\`README.md\`](README.md?plain=1) for an example of Markdown.
-* Any included images or screenshots should be done in \`*.jpg\`, \`*.png\`, or \`*.gif\` formats, and be included individually as files in your repository (i.e. no binary 'document' with the images pasted inside).
-* Screenshots or images *may* be linked in your Markdown file writeup if you wish to do so.`;
+const READING_BLURB =
+  'Answer the following questions based on your reading and class participation in *%TOPIC%*. ' +
+  'Be complete with your answers. You may work on these questions with one or two other partners, ' +
+  "but *all* students must submit individually in their own repositories along with each student's " +
+  'name documented with the submission.';
 
-function deriveQuestions(config) {
-  if (Array.isArray(config.lecture.studyQuestions) && config.lecture.studyQuestions.length > 0) {
-    return config.lecture.studyQuestions;
-  }
+const DELIVERABLES = [
+  '- Markdown writeup; submit individually in your own GitHub Classroom repo.',
+  '- Any included images or screenshots in `*.jpg`, `*.png`, or `*.gif`, included individually as files (no binary documents with embedded images).',
+  '- Screenshots may be linked in the writeup if you wish.',
+];
 
-  const concepts = config.lecture.keyConcepts;
-  const sections = config.lecture.sections.map((s) => s.title);
-  const c0 = concepts[0] || "the primary concept";
-  const c1 = concepts[1] || c0;
-  const s0 = sections[0] || "the first section";
-
-  const questions = [
-    `[Recall] Define ${c0}.`,
-    `[Recall] Summarize the main idea behind ${c1}.`,
-    `[Apply] Apply ${c0} to one of today's case studies.`,
-    `[Apply] Explain how ${s0} would change under a different workload or constraint.`,
-    `[Apply] Choose one tradeoff from the lecture and defend a decision.`,
-    `[Analyze] Compare two approaches from the lecture and identify the stronger fit for a real system.`,
-    `[Analyze] Identify the failure mode most likely to appear if the lecture's guardrails are ignored.`,
-    `[Analyze] Evaluate how the lecture's design choices affect observability, performance, and correctness.`,
-    `[Analyze] Build a short argument connecting the framework to an unfamiliar scenario.`,
-    `[Analyze] Critique the lecture's case study and propose a better alternative.`,
-  ];
-
-  if (config.course.adversarialThinking) {
-    questions[8] = "[Analyze] From an attacker's perspective, identify the most exploitable weakness in the design and justify it.";
-  }
-
-  return questions;
+// Strip the leading `Qn.` (with backticks) or bare `Qn.` prefix from a self-quiz prompt.
+function stripQPrefix(text) {
+  return text
+    .replace(/^`Q\d+\.`\s*/, '')
+    .replace(/^Q\d+\.\s*/, '')
+    .trim();
 }
 
-function generate(config, options) {
-  const slug = topicSlug(config);
-  const mdPath = path.join(options.outputDir, `${slug}_study_questions.md`);
-  const { course, lecture } = config;
-  const allQuestions = deriveQuestions(config);
+function buildTags(fm) {
+  const out = new Set();
+  const rawTags = fm.raw && Array.isArray(fm.raw.tags) ? fm.raw.tags : [];
+  for (const t of rawTags) {
+    // Skip type tags from the source (e.g., `lecture-main`).
+    if (t === 'lecture-main' || t === 'study-questions') continue;
+    out.add(t);
+  }
+  // Course slug, if not already present.
+  if (fm.course) {
+    const slug = fm.course.toLowerCase().replace(/\s+/g, '');
+    out.add(slug);
+  }
+  out.add('study-questions');
+  return [...out];
+}
 
-  const lines = [];
+function frontmatterBlock(fm) {
+  const now = new Date().toISOString();
+  const title = fm.title || 'Lecture';
+  const course = fm.course || '';
+  const tags = buildTags(fm);
+  const lines = ['---'];
+  lines.push(`title: ${title} — Study Questions`);
+  if (course) lines.push(`course: ${course}`);
+  lines.push('type: study-questions');
+  lines.push(`created: ${now}`);
+  lines.push(`updated: ${now}`);
+  lines.push('visibility: private');
+  lines.push(`tags: [${tags.join(', ')}]`);
+  lines.push('icon: LiGraduationCap');
+  lines.push('iconColor: var(--text-normal)');
+  lines.push('---');
+  return lines.join('\n');
+}
 
-  // Title — matches course README format
-  lines.push(`# ${course.code} Reading Assignment: ${lecture.topic}`);
-  lines.push("");
+export function generateStudyQuestions(parsed, options = {}) {
+  const fm = parsed.frontmatter || {};
+  const title = fm.title || 'Lecture';
+  const course = fm.course || '';
+  const selfQuiz = applyTermFilter(parsed.byRole.get('self-quiz') ?? [], options);
 
-  // Assignment description
-  const lectureRef = lecture.slug
-    ? `*${lecture.topic}*`
-    : `the lecture on ${lecture.topic}`;
-  lines.push("### Assignment Description");
-  lines.push(
-    `Answer the following questions based on your reading and ${lectureRef}. ` +
-    `Be complete with your answers. You may work on these questions with one or two other partners, ` +
-    `but *all* students must submit the document individually in their own repositories along with ` +
-    `each student's name documented with the submission.`
-  );
-  lines.push("");
+  // Adversarial branch: items tagged both #self-quiz and #adversarial.
+  const adversarialItems = fm.adversarialThinking
+    ? selfQuiz.filter((i) => i.tags && i.tags.has && i.tags.has('adversarial'))
+    : [];
+  const adversarialSet = new Set(adversarialItems);
+  const mainItems = selfQuiz.filter((i) => !adversarialSet.has(i));
 
-  // Numbered questions — flat list, no Bloom's headers
-  allQuestions.forEach((q, i) => {
-    const text = q.replace(/^\[.*?\]\s*/, "");
-    lines.push(`${i + 1}. ${text}`);
-    lines.push("");
+  const out = [];
+  out.push(frontmatterBlock(fm));
+  out.push('');
+  out.push(`# ${title} — Study Questions`);
+  out.push('');
+  if (course) {
+    out.push(`**Course:** ${course} — ${title}`);
+    out.push('');
+  }
+
+  out.push('## Reading Assignment');
+  out.push('');
+  out.push(READING_BLURB.replace('%TOPIC%', title));
+  out.push('');
+
+  mainItems.forEach((item, i) => {
+    const text = stripQPrefix(item.text || '');
+    out.push(`${i + 1}. ${text}`);
   });
+  out.push('');
 
-  // Fixed deliverables boilerplate
-  lines.push(DELIVERABLES);
-  lines.push("");
+  if (adversarialItems.length > 0) {
+    out.push('## Adversarial — required');
+    out.push('');
+    adversarialItems.forEach((item, i) => {
+      const text = stripQPrefix(item.text || '');
+      out.push(`${i + 1}. ${text}`);
+    });
+    out.push('');
+  }
 
-  fs.writeFileSync(mdPath, lines.join("\n"));
-  return mdPath;
+  out.push('## Deliverables');
+  out.push('');
+  for (const d of DELIVERABLES) out.push(d);
+  out.push('');
+
+  return out.join('\n');
 }
 
-module.exports = { generate };
+export default generateStudyQuestions;

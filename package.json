@@ -2,16 +2,22 @@
   "name": "lecture-materials-assistant",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Stable generator toolchain for lecture materials.",
   "main": "generate.js",
   "scripts": {
     "generate": "node generate.js",
     "init-spec": "node init-spec.js",
-    "check": "node --check generate.js && node --check init-spec.js && node --check lib/context.js && node --check lib/files.js && node --check lib/spec.js && node --check lib/prompt-parser.js && node --check lib/docx-helpers.js && node --check lib/pptx-helpers.js && node --check lib/tex-helpers.js && node --check generators/lecture-notes.js && node --check generators/cornell-handout.js && node --check generators/study-questions.js && node --check generators/quiz.js && node --check generators/readme.js && node --check generators/slides.js && node --check generators/question-bank.js && node --check generators/exam.js"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "node --check generate.js && node --check init-spec.js && node --check lib/context.js && node --check lib/files.js && node --check lib/spec.js && node --check lib/prompt-parser.js && node --check lib/docx-helpers.js && node --check lib/tex-helpers.js && node --check generators/lecture-notes.js && node --check generators/cornell-handout.js && node --check generators/study-questions.js && node --check generators/quiz.js && node --check generators/readme.js && node --check generators/slides.js && node --check generators/question-bank.js && node --check generators/exam.js"
   },
   "dependencies": {
     "docx": "^9.5.1",
-    "markdown-it": "^14.1.0",
-    "pptxgenjs": "^4.0.1"
+    "gray-matter": "^4.0.3",
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.5"
   }
 }

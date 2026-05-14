@@ -1,55 +1,149 @@
-const path = require("path");
-const { topicSlug } = require("../lib/context");
-const { writeText } = require("../lib/files");
+// Question bank generator — kept-artifact emitter for `<topic>_question_bank.md`.
+//
+// Walks parsed AST from parser/ over `byRole.get('question')` (top-level items
+// only — option child-bullets are attached as item.children) and emits one
+// markdown block per question in source order.
+//
+// Format (extends the spec-driven-2025 archived schema):
+//   ## <typeletter><nn>             id-headed (m/t/c/f/s + 01-padded seq within type)
+//   - type:                         mc|tf|code|fib|sa
+//   - difficulty: 1|2|3
+//   - section: I|II|III|...
+//   - points: N                     (omitted if absent)
+//   - exam-eligible: true|false
+//   - tags: <space-joined custom tags>   (omitted if empty)
+//   - adversarial: true             (only if #adversarial)
+//   - prompt: |
+//       <multi-line prompt>
+//   - options:                      (mc only)
+//       - A. ...
+//       - B. ...
+//   - answer: <answer>
+//
+// Source order: questions emit in the order they appear in the source main.md.
+// Numbering is per-type 01-padded (m01..m07, t01..t03, etc.).
+//
+// Validator already handled the #type/fib + #exam-eligible mutation (strips
+// exam-eligible and warns); this generator just reflects the resulting state.
 
-function deriveEntries(config) {
-  if (Array.isArray(config.lecture.questionBank) && config.lecture.questionBank.length > 0) {
-    return config.lecture.questionBank;
+import { applyTermFilter } from './_filter.js';
+
+const TYPE_LETTER = { mc: 'm', tf: 't', code: 'c', fib: 'f', sa: 's' };
+
+const META_TAGS = new Set(['question', 'adversarial', 'exam-eligible']);
+const META_PREFIXES = ['type/', 'difficulty/', 'section/', 'bloom/', 'audience/'];
+
+function isMetaTag(t) {
+  if (META_TAGS.has(t)) return true;
+  return META_PREFIXES.some((p) => t.startsWith(p));
+}
+
+function pickType(tags) {
+  for (const t of tags) {
+    if (t.startsWith('type/')) return t.slice('type/'.length);
+  }
+  return null;
+}
+
+function pickDifficulty(tags) {
+  for (const t of tags) {
+    if (t.startsWith('difficulty/')) return t.slice('difficulty/'.length);
+  }
+  return null;
+}
+
+function customTags(tags) {
+  return [...tags].filter((t) => !isMetaTag(t));
+}
+
+// Indent every line of `s` by `pad` spaces.
+function indentBlock(s, pad) {
+  const prefix = ' '.repeat(pad);
+  return s.split('\n').map((l) => prefix + l).join('\n');
+}
+
+function buildOptions(item) {
+  // Prefer child bullets (parser-attached). Fall back to [options:: A; B; …].
+  if (item.children && item.children.length > 0) {
+    return item.children
+      .map((c) => (c.text || '').trim())
+      .filter(Boolean);
+  }
+  const f = item.fields && item.fields.get && item.fields.get('options');
+  if (f) {
+    return f
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s, i) => (/^[A-Z]\.\s/.test(s) ? s : `${String.fromCharCode(65 + i)}. ${s}`));
+  }
+  return [];
+}
+
+export function generateQuestionBank(parsed, options = {}) {
+  const fm = parsed.frontmatter || {};
+  const title = fm.title || 'Lecture';
+  const courseLabel = [fm.course, title].filter(Boolean).join(' — ');
+  const generated = new Date().toISOString();
+  const sourcePath = (fm.raw && fm.raw['source-path']) || (parsed.sourcePath ?? '');
+
+  const out = [];
+  out.push(`# ${title} Question Bank`);
+  out.push('');
+  if (courseLabel) out.push(`Course: ${courseLabel}`);
+  out.push(`Generated: ${generated}`);
+  if (sourcePath) out.push(`Source: ${sourcePath}`);
+  out.push('');
+
+  const questions = applyTermFilter(parsed.byRole.get('question') ?? [], options);
+
+  // Per-type running counter for id assignment.
+  const counters = { mc: 0, tf: 0, code: 0, fib: 0, sa: 0 };
+
+  for (const q of questions) {
+    const type = pickType(q.tags);
+    if (!type || !TYPE_LETTER[type]) continue;
+    counters[type] += 1;
+    const id = `${TYPE_LETTER[type]}${String(counters[type]).padStart(2, '0')}`;
+
+    const difficulty = pickDifficulty(q.tags) || '';
+    const section = q.section || '';
+    const points = q.fields && q.fields.get && q.fields.get('points');
+    const examEligible = q.tags.has('exam-eligible'); // already mutated by validator for fib
+    const adversarial = q.tags.has('adversarial');
+    const extras = customTags(q.tags);
+    const answer = (q.fields && q.fields.get && q.fields.get('answer')) || '';
+    const prompt = (q.text || '').trim();
+
+    out.push(`## ${id}`);
+    out.push('');
+    out.push(`- type: ${type}`);
+    if (difficulty) out.push(`- difficulty: ${difficulty}`);
+    if (section) out.push(`- section: ${section}`);
+    if (points) out.push(`- points: ${points}`);
+    out.push(`- exam-eligible: ${examEligible ? 'true' : 'false'}`);
+    if (extras.length > 0) out.push(`- tags: ${extras.join(' ')}`);
+    if (adversarial) out.push('- adversarial: true');
+
+    // Prompt — multi-line indent block under `prompt: |`.
+    out.push('- prompt: |');
+    out.push(indentBlock(prompt, 4));
+
+    if (type === 'mc') {
+      const opts = buildOptions(q);
+      if (opts.length > 0) {
+        out.push('- options:');
+        for (const o of opts) {
+          out.push(`    - ${o}`);
+        }
+      }
+    }
+
+    out.push(`- answer: ${answer}`);
+    out.push('');
   }
 
-  const entries = [];
-  config.lecture.sections.forEach((section, index) => {
-    entries.push({
-      type: "mc",
-      difficulty: "★",
-      prompt: `Which statement best captures the main idea of ${section.title}?`,
-      answer: "Provide one correct option plus three plausible distractors.",
-      subtopic: section.title,
-      id: `mc-${index + 1}`,
-    });
-    entries.push({
-      type: "sa",
-      difficulty: "★★",
-      prompt: `Explain one tradeoff or design decision from ${section.title}.`,
-      answer: "A strong answer names the tradeoff, context, and consequence.",
-      subtopic: section.title,
-      id: `sa-${index + 1}`,
-    });
-  });
-  return entries;
+  return out.join('\n');
 }
 
-async function generate(config, options) {
-  const slug = topicSlug(config);
-  const filePath = path.join(options.outputDir, `${slug}_question_bank.md`);
-  const lines = [
-    `# ${config.lecture.topic} Question Bank`,
-    "",
-    `Course: ${config.course.code} - ${config.course.name}`,
-    "",
-  ];
-
-  deriveEntries(config).forEach((entry) => {
-    lines.push(`## ${entry.id}`);
-    lines.push(`- type: ${entry.type}`);
-    lines.push(`- difficulty: ${entry.difficulty}`);
-    lines.push(`- subtopic: ${entry.subtopic}`);
-    lines.push(`- prompt: ${entry.prompt}`);
-    lines.push(`- answer: ${entry.answer}`);
-    lines.push("");
-  });
-
-  return writeText(options.outputDir, path.basename(filePath), lines.join("\n"));
-}
-
-module.exports = { generate };
+export default generateQuestionBank;

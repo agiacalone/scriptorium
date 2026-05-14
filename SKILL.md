@@ -4,14 +4,15 @@ description: >
   Generates lecture material sets for CS professors: lecture notes (.pdf),
   Cornell note-taking handouts (.pdf), study questions (.md), pop quizzes (.pdf),
   GitHub Classroom README assignments (.md), topic-wide question banks (.md),
-  assembled exams (.tex/.pdf), and slide decks (.pptx). Use this skill whenever a
-  user asks to generate, create, assemble, revise, or extend any lecture materials,
-  course handouts, slides, quizzes, study questions, question banks, exams, or
-  GitHub Classroom assignments — even partial requests like "make me a Cornell
-  handout for X", "add questions to the README", "write a pop quiz on Y", "append
-  to the question bank", or "assemble exam 1 from these banks". Enforces strict
-  style consistency, Cornell ↔ slide alignment auditing, and tiered difficulty
-  question design. Always use this skill for any CS lecture content generation task.
+  assembled exams (.tex/.pdf), reading-list companions (.md), and Beamer slide
+  decks (.tex/.pdf). Use this skill whenever a user asks to generate, create,
+  assemble, revise, or extend any lecture materials, course handouts, slides,
+  quizzes, study questions, question banks, exams, or GitHub Classroom assignments
+  — even partial requests like "make me a Cornell handout for X", "add questions
+  to the README", "write a pop quiz on Y", "append to the question bank", or
+  "assemble exam 1 from these banks". Enforces strict style consistency, Cornell
+  ↔ slide alignment auditing, and tiered difficulty question design. Always use
+  this skill for any CS lecture content generation task.
 ---
 
 # Lecture Materials Assistant
@@ -27,8 +28,8 @@ intentionally as a live navigation aid that reads clearly at a glance during lec
 
 ---
 
-Output files are written to the current working directory unless the user specifies
-another target.
+Output files are written to the directory containing the `_lecture_main.md`
+source unless `--out <dir>` is passed.
 
 ---
 
@@ -50,6 +51,9 @@ If a required field is missing for the requested artifact, ask for it before
 proceeding. `adversarial-thinking` defaults to **no** if not specified, so do not
 block on that field alone.
 
+These fields live in the YAML frontmatter and `#meta` section of the
+`_lecture_main.md`; the parser surfaces them to every generator.
+
 ---
 
 ## What to Generate
@@ -57,15 +61,18 @@ block on that field alone.
 | Artifact | File | When |
 |---|---|---|
 | Lecture notes | `[topic]_lecture_notes.pdf` (`.tex` retained) | Instructor copy with speaker notes, timing, and callouts; not student-facing |
-| Cornell handout | `[topic]_cornell_handout.pdf` + `[topic]_cornell_handout_key.pdf` (`.tex` retained) | Student guided notes with roughly 40% slide coverage and strategic omissions; section colors keyed to section "kind". Key PDF reveals `blanks[].answers` and `vocabulary[].definition` in red bold inside the yellow cells, with a red "ANSWER KEY — INSTRUCTOR USE ONLY" banner at the top |
+| Cornell handout | `[topic]_cornell_handout.pdf` (`.tex` retained) | Student guided notes with roughly 40% slide coverage and strategic omissions; section colors keyed to section "kind" |
 | Study questions | `[topic]_study_questions.md` | 10 tiered review questions that reinforce the lecture without recreating it (kept-form Markdown; no print form yet) |
 | Pop quiz | `[topic]_quiz.pdf` + `[topic]_quiz_key.pdf` (`.tex` retained) | 5-question in-class quiz with separate instructor answer-key PDF |
 | Question bank | `[topic]_question_bank.md` | ~50 tagged questions (mc/tf/code/fib/sa), scoped to full topic (2–4 sessions) |
 | Exam | `[course_num]-exam-[n]-[term].pdf` | Assembled from bank(s), compiled via pdflatex; `.tex` source retained; generator toggles `\answerstrue` and recompiles for the key |
+| Reading-list companion | `[topic]_reading_list.md` (single topic) or `[scope]_reading_list.md` (multi-topic, e.g. `final_third_reading_list.md`) | Hybrid scaffold paired 1:1 (or 1:N) with Cornell handout(s); the generator emits a `<!-- generator: cue-tables -->` … `<!-- /generator -->` fence with cue-to-source rows; manual content outside the fence is preserved on regen. Can also serve as a pre-exam review deliverable. |
 | GitHub README | `README.md` | GitHub Classroom assignment (reading or lab/programming variant) |
-| Slide deck | `[topic]_slides.pptx` | 14–18 slides, CS Modern dark slate theme |
+| Slide deck | `[topic]_slides.tex` + `[topic]_slides.pdf` | 14–18 Beamer slides, CS Modern dark slate theme, indigo frametitle accent stripe |
 
-All printed-handout artifacts (lecture notes, Cornell handout, pop quiz, exam) render to PDF via `pdflatex`. The `.docx` format is no longer emitted by any generator.
+All printed-handout artifacts (lecture notes, Cornell handout, pop quiz, exam,
+slides) render to PDF via `pdflatex`. The `.docx` and `.pptx` formats are no
+longer emitted by any generator.
 
 **Default (generate everything — single session):**
 > "Generate lecture materials for [TOPIC] in [COURSE]. Cover: [KEY CONCEPTS]. Case studies: [EXAMPLES]. ~[N] minutes."
@@ -83,9 +90,19 @@ generating. If subtopics are not provided, ask for them before proceeding.
 **Exam (assembled from 2–3 topic banks):**
 > "Assemble an exam for [COURSE] [TERM], [EXAM NAME], [N] pts. Draw from: [bank1.md], [bank2.md], [bank3.md]. MC: [N] questions × [pts] pts. Essay: [N] questions × [pts] pts. Difficulty: ★ [N]%, ★★ [N]%, ★★★ [N]%. Randomize: yes/no."
 
+**Reading-list companion (single topic):**
+> "Build a reading-list companion for the [topic] Cornell handout. Map every cue to its source in [textbook ed.] and add supplementary primary sources where the textbook doesn't reach the cue."
+
+**Reading-list companion (multi-topic, end-of-unit pre-exam review):**
+> "Build a final-third reading-list for [course] covering both the [topic A] and [topic B] Cornell handouts — students will use it to fill in blanks they missed and prep for the final."
+
+The reading-list generator scaffolds the cue→source tables inside a fence; the
+surrounding prose, References list, and any hand-curated supplementary primary
+sources live outside the fence and survive regeneration. See
+`references/style-guide.md` § *Reading-List Companion* for the required structure.
+
 Exams typically span 2–3 lecture topics. If topics had unequal session counts,
-weight question selection proportionally (e.g. a 3-session topic gets more
-questions than a 2-session topic in the same exam).
+weight question selection proportionally.
 
 For two parallel sections needing different question sets, run assembly twice with
 `randomize: yes` — same bank, different shuffle. Provide the section identifier so
@@ -101,25 +118,39 @@ file names are distinct (e.g. `326-exam-1-sp26-a.tex`, `326-exam-1-sp26-b.tex`).
 
 ## Generation Process
 
-Generate files in the current working directory unless the user specifies a target
-folder. For Claude Code, use the existing reusable Node.js scripts in this repo.
-Do not regenerate the JavaScript toolchain on each run. Instead:
+The skill consumes a single markdown source per topic — `<topic>_lecture_main.md`,
+typically living at `<vault>/classes/<course>/`. That file is the source of truth:
+it carries YAML frontmatter (course context, topic, length), Obsidian-tagged
+content blocks (`#concept`, `#blank`, `#question`, `#slide`, …), and Dataview-style
+inline fields (`[slide:: 5]`, `[layout:: diagram]`, `[answer:: B]`,
+`[difficulty:: 2]`, `[alt:: …]`). Every generator walks the parsed AST + tag
+indexes — no separate spec, no JSON intermediate.
 
-1. Read `references/style-guide.md`
-2. Gather or update the lecture spec JSON with the topic, course context, and content
-3. Use `init-spec.js` to scaffold the spec when starting from a prompt and no spec exists yet
-4. Run the checked-in generator CLI against that spec
+Workflow:
 
-**Dependencies** (install once per course repo, as needed):
+1. Read `references/style-guide.md` (color, blank rules, tag taxonomy, slide layouts).
+2. Create or update the `_lecture_main.md` for the topic — add or refine tagged
+   blocks until it reflects the user's request. See `examples/file_systems_abstraction_lecture_main.md`
+   for a canonical example.
+3. Run the orchestrator. The parser validates first; hard errors (missing
+   `[slide::]` on a `#blank`, `mc` question without `[answer::]`, unknown slide
+   layout, missing `[alt::]` on a `#diagram`) abort generation with a clear
+   message.
+
+**Canonical command:**
 ```bash
-npm install docx pptxgenjs
-npm install markdown-it
+node generate.js --main <vault>/classes/<course>/<topic>_lecture_main.md --out .
+```
+
+**Dependencies** (install once per skill checkout):
+```bash
+npm install
 ```
 
 A LaTeX toolchain with `pdflatex` is required for the lecture-notes, Cornell, quiz,
-and exam PDFs. Required TeX packages: `texlive-needspace`, `texlive-ec`,
+exam, and slide PDFs. Required TeX packages: `texlive-needspace`, `texlive-ec`,
 `texlive-tabulary`, `texlive-mdframed`, `texlive-collection-fontsrecommended`
-(for `lmodern`):
+(for `lmodern`), and the Beamer collection (`texlive-beamer`):
 ```bash
 pdflatex --version
 ```
@@ -127,76 +158,159 @@ pdflatex --version
 **Existing script structure (modular — one file per artifact family):**
 
 ```
-init-spec.js             # scaffold a lecture spec from prompt-like inputs
-generate.js              # CLI orchestrator for the standard lecture set
+generate.js              # CLI orchestrator: parse → validate → dispatch → compile
+parser/
+  index.js               # parse(mainPath) + validate(parsed) entry points
+  main-parser.js         # markdown + tag + inline-field walker
+  validators.js          # invariant checks; hard errors block generation
 examples/
-  deadlock-spec.json     # sample lecture input
+  file_systems_abstraction_lecture_main.md   # canonical example (symlinked from vault)
+  deadlock_study_questions.md
 lib/
   tex-helpers.js         # shared LaTeX preamble + helpers + pdflatex driver
   cornell-tex.js         # Cornell-handout LaTeX palette + helpers
-  pptx-helpers.js        # slide helpers
 generators/
   lecture-notes.js       # → [topic]_lecture_notes.tex + .pdf
   cornell-handout.js     # → [topic]_cornell_handout.tex + .pdf
   study-questions.js     # → [topic]_study_questions.md
   quiz.js                # → [topic]_quiz.tex/.pdf + [topic]_quiz_key.tex/.pdf
   readme.js              # → README.md
-  slides.js              # → [topic]_slides.pptx
+  slides.js              # → [topic]_slides.tex + .pdf  (Beamer)
   question-bank.js       # → [topic]_question_bank.md
+  reading-list.js        # → [topic]_reading_list.md   (fenced scaffold; manual content preserved)
   exam.js                # → [course_num]-exam-[n]-[term].tex + .pdf
+archive/
+  spec-driven-2025/      # historical: init-spec.js + lecture-spec.json (do not author new specs)
 ```
 
 **Execution model:**
-- Standard single-session lecture set: lecture notes, Cornell handout, study questions, quiz, README, and slides
+- Standard single-session lecture set: lecture notes, Cornell handout, study questions, quiz, README, slides, reading-list scaffold
 - Topic-wide bank generation: create or append to `[topic]_question_bank.md`
-- Exam assembly: read the exam section of the config, generate `.tex`, and optionally compile it downstream
+- Exam assembly: separate sub-command driven by an exam-spec.json (which banks, weights, randomization)
 
 **Running (examples):**
 ```bash
-node init-spec.js --prompt "Generate lecture materials for Virtual Memory and Paging in CECS 326. Cover: virtual address space, page table translation, TLB locality."
-node init-spec.js --topic "Virtual Memory and Paging" --course-code "CECS 326"
-node generate.js --config examples/lecture-spec.json
-node generate.js --config examples/lecture-spec.json --artifact slides
-node generate.js --config examples/lecture-spec.json --artifact bank
-node generate.js --config examples/lecture-spec.json --artifact exam
+# Generate every artifact for a topic from its lecture_main.md
+node generate.js --main /mnt/es1/anthony/obsidian/vault/classes/326/file_systems_abstraction_lecture_main.md
+
+# Single artifact
+node generate.js --main path/to/topic_lecture_main.md --artifact slides
+node generate.js --main path/to/topic_lecture_main.md --artifact bank
+node generate.js --main path/to/topic_lecture_main.md --artifact reading-list
+
+# Override output directory and skip pdflatex
+node generate.js --main path/to/topic_lecture_main.md --out ./out --no-pdf
+
+# Exam assembly (separate sub-command)
+node generate.js exam --spec ./exam-spec.json --out .
+
+# Reproducing a past semester's exam (strict — only items used in sp24)
+node generate.js --main path/to/topic_lecture_main.md --strict-semester sp24
+
+# Building the current semester's deck (loose — keep current-tagged + untagged)
+node generate.js --main path/to/topic_lecture_main.md --semester sp26
+
+# Assemble an exam, then write #used/sp26 back to each picked item's source
+node generate.js exam --spec ./exam-spec.json --mark-used sp26
+
+# Staleness audit — list items whose newest #used/<term> is older than current
+node generate.js audit --main path/to/topic_lecture_main.md --current-term sp26
 ```
 
-## Prompt-To-Spec Translation
+### Reproducibility & staleness — the `#used/<term>` workflow
 
-When the user asks for lecture materials from a topic and some content, translate the
-request into the lecture spec JSON rather than writing generator code.
+Mark an item with `#used/<term>` (e.g. `#used/sp26`) every semester it's used.
+Tags accumulate, so a question on the sp24 final and again on sp26 carries
+both `#used/sp24` and `#used/sp26`. Two filter modes use these tags:
 
-- Topic line maps to `lecture.topic`
-- Course context maps to `course.*`
-- Covered concepts map to `lecture.keyConcepts`
-- Requested agenda or subtopics map to `lecture.sections`
-- Examples or case studies map to `lecture.caseStudies`
-- In-class exercises map to `lecture.activities`
-- Review prompts or homework questions map to `lecture.discussionQuestions`
+- `--semester sp26` (loose): keep items tagged `#used/sp26` AND items with no
+  `#used/*` tag at all. Use this for a current-semester deck that mixes
+  recently-tagged content with general-purpose unmarked content.
+- `--strict-semester sp26` (strict): keep ONLY items tagged `#used/sp26`. Use
+  this to reproduce a past semester's exam or handout exactly as it shipped.
 
-If a user request is incomplete, scaffold the spec with the best available defaults,
-then fill gaps conservatively instead of regenerating new `.js` files.
+`node generate.js exam --mark-used sp26` runs after a successful exam build and
+appends `#used/sp26` to each picked item's source `_lecture_main.md`. The pass
+is idempotent — items already carrying the tag are skipped.
+
+`node generate.js audit --main <path>` produces a staleness report grouped by
+section: items whose newest `#used/*` is older than `--current-term` (or the
+main's frontmatter `term:`), plus a "Never marked used" section for items that
+have never been tagged. Items 4+ semesters stale flag with `⚠`.
+
+## Prompt-To-Main Translation
+
+When the user asks for lecture materials from a topic and some content, translate
+the request into the `_lecture_main.md` source rather than writing generator code.
+
+- Topic / course / length → YAML frontmatter
+- Sections / agenda → `## Section …` headings tagged `#section/I`, `#section/II`, …
+- Covered concepts → blocks tagged `#concept`
+- Cornell blanks → blocks tagged `#blank` with `[slide:: N]` pointing at the
+  source slide
+- Slides → blocks tagged `#slide` with `[layout:: …]` (one of the 11 layouts in
+  the enum) and an `[alt:: …]` field on diagram-bearing layouts
+- Quiz / bank / study questions → blocks tagged `#question` with `#type/{mc,tf,code,fib,sa}`,
+  `#difficulty/{1,2,3}`, and `[answer:: …]`
+- Adversarial / exam-eligible status → `#adversarial`, `#exam-eligible`
+- Audience overrides — if a block belongs to only one artifact: `#cornell-only`,
+  `#notes-only`, `#slides-only`
+
+If a user request is incomplete, scaffold the `_lecture_main.md` with the best
+available defaults, then fill gaps conservatively. The full tag taxonomy and
+inline-field reference live in `references/style-guide.md` § *Tag Taxonomy
+(canonical, v1.0)*.
 
 **Toolchain:**
-- `.tex` / `.pdf` (lecture notes, Cornell handout, quiz, exam) → LaTeX (`pdflatex`)
-- `.pptx` (slide deck) → `pptxgenjs` npm package (v4+)
-- `.md` (question bank, README, study questions) → plain Markdown
+- `.tex` / `.pdf` (lecture notes, Cornell handout, quiz, exam, slides) → LaTeX (`pdflatex`); slides via Beamer
+- `.md` (question bank, README, study questions, reading-list) → plain Markdown
 
-When updating existing materials, update the lecture spec first and preserve scope,
-numbering, and file naming unless the user asks for a restructure. For question
-banks, never overwrite an existing bank blindly: read it first, then append or
-merge intentionally.
+When updating existing materials, edit the `_lecture_main.md` first and preserve
+scope, numbering, and file naming unless the user asks for a restructure. For
+question banks, never overwrite an existing bank blindly: read it first, then
+append or merge intentionally.
 
-**QA workflow for slides (run manually — Claude Code has no in-chat image display):**
+**Slide QA workflow:**
+
+Beamer compiles `<topic>_slides.tex` directly to `<topic>_slides.pdf` via
+`pdflatex` — no intermediate conversion is needed. View with any PDF viewer; for
+inline JPEG inspection (e.g. when running headless or sanity-checking layout):
+
 ```bash
-soffice --headless --convert-to pdf [topic]_slides.pptx
 pdftoppm -jpeg -r 150 [topic]_slides.pdf slide
 # open slide-*.jpg in your image viewer, then report any layout issues back
 ```
 
+**PDF render path for hand-authored markdown companions (ad-hoc handouts that aren't generator output):**
+
+When a `.md` companion needs to be posted to Canvas as a PDF, use **pandoc + lualatex** with a small preprocessing pass to keep Obsidian-flavored markdown legible. `xelatex` chokes on Noto's variable-weight TTFs; `lualatex` with default Latin Modern works.
+
+```bash
+SRC=/path/to/companion.md
+STAGED=/tmp/$(basename "$SRC")
+awk 'BEGIN{fm=0} /^---$/{fm++; next} fm<2{next} {print}' "$SRC" > "$STAGED"
+sed -i -E 's/\[\[([^|]+)\|([^]]+)\]\]/\2/g' "$STAGED"          # [[a|b]] -> b
+perl -i -pe 's/\[\[([^]]+)\]\]/my $s=$1; $s=~s|_| |g; $s/ge' "$STAGED"   # [[a_b]] -> a b
+perl -i -pe 's/≥/>=/g; s/≤/<=/g; s/⩾/>=/g; s/⩽/<=/g;' "$STAGED"          # LM Roman lacks these
+
+pandoc "$STAGED" \
+  -o "$(dirname "$SRC")/$(basename "$SRC" .md).pdf" \
+  --pdf-engine=lualatex \
+  -V geometry:margin=0.9in \
+  -V colorlinks=true -V linkcolor=blue -V urlcolor=blue \
+  --highlight-style=tango \
+  -V documentclass=article \
+  --toc --toc-depth=2 \
+  -V linestretch=1.15 -V fontsize=11pt
+```
+
+This is the canonical render for any handout-companion `.md` → `.pdf`. The cornell handouts themselves still go through the LaTeX generator; this path is for the markdown-only artifacts that don't have a generator.
+
 Always perform Cornell ↔ slide alignment audit after generating both artifacts.
-Do not declare the handout complete until every blank is audited. See the
-**Blank Audit** section in `references/style-guide.md`.
+Do not declare the handout complete until every blank is audited. The blank-audit
+invariant is enforced by `parser/validators.js` as a hard error: every `#blank`
+must carry `[slide:: N]`. See the **Blank Audit** section in
+`references/style-guide.md`.
 
 ---
 
@@ -205,16 +319,24 @@ Do not declare the handout complete until every blank is audited. See the
 Lowercase with underscores. Course code does **not** appear in filenames.
 
 ```
-cryptography_lecture_notes.docx
-cryptography_cornell_handout.docx
-cryptography_study_questions.docx
-cryptography_quiz.docx
+cryptography_lecture_main.md            # source of truth
+cryptography_lecture_notes.pdf
+cryptography_cornell_handout.pdf
+cryptography_study_questions.md
+cryptography_quiz.pdf
+cryptography_quiz_key.pdf
 cryptography_question_bank.md
-cryptography_slides.pptx
+cryptography_slides.pdf
+cryptography_reading_list.md
 README.md
 
 # Exam (assembled from one or more banks):
 326-exam-1-sp26.tex
+326-exam-1-sp26.pdf
+326-exam-1-sp26-key.pdf
+
+# Reading-list companion (multi-topic — covers a unit or final third):
+final_third_reading_list.md
 ```
 
 ---
@@ -224,6 +346,7 @@ README.md
 Use `references/style-guide.md` for all artifact-specific formatting and content
 rules. In particular, check it for:
 
+- tag taxonomy and inline-field reference (canonical)
 - lecture-note callout types and section order
 - Cornell blank density, blank audit, and diagram rules
 - student-facing coverage limits and omission requirements
@@ -232,5 +355,7 @@ rules. In particular, check it for:
 - quiz timing, answer-key format, and question constraints
 - question-bank schema, numbering, dedupe, and tagging
 - exam structure, LaTeX rules, randomization, and file naming
+- reading-list companion frontmatter, callouts, cue-table format, and References discipline
 - GitHub README boilerplate and Markdown rules
-- slide palette, required slide chrome, and standard deck structure
+- Beamer slide palette, frametitle stripe, layout enum, and standard deck structure
+- ADA Title II compliance: `[alt::]` requirement on `#diagram` and diagram slide layouts; color-and-glyph pairing on Cornell sections; tagged-PDF preference

@@ -53,15 +53,15 @@
       "Apollo-11 AGC source (IMU_MODE_SWITCHING_ROUTINES.agc) — https://github.com/chrislgarry/Apollo-11"
     ],
     "vocabulary": [
-      { "term": "deadlock", "definition": "Permanent blocking of a process set, each holding a resource the others need." },
-      { "term": "livelock", "definition": "Processes change state continuously but make no useful progress." },
-      { "term": "starvation", "definition": "A process is perpetually denied a resource it needs to proceed." },
-      { "term": "mutual exclusion", "definition": "A resource can be held by at most one process at a time." },
-      { "term": "hold and wait", "definition": "A process holds a resource while waiting on another." },
-      { "term": "no preemption", "definition": "Resources are released voluntarily; the OS cannot reclaim them." },
-      { "term": "circular wait", "definition": "A chain of processes each waiting for a resource the next holds." },
-      { "term": "lock leak", "definition": "A resource is acquired but never released on some exit path (CWE-772)." },
-      { "term": "abandoned mutex", "definition": "A mutex whose holder died or exited without releasing it." }
+      "deadlock",
+      "livelock",
+      "starvation",
+      "mutual exclusion",
+      "hold and wait",
+      "no preemption",
+      "circular wait",
+      "lock leak",
+      "abandoned mutex"
     ],
     "sections": [
       {
@@ -89,13 +89,11 @@
         "blanks": [
           {
             "cue": "The bug",
-            "template": "LGYRO is acquired on entry to the gyro torque routine but never released when the error path exits via _______.",
-            "answers": ["BADEND (the cage-switch error path)"]
+            "template": "LGYRO is acquired on entry to the gyro torque routine but never released when the error path exits via _______."
           },
           {
             "cue": "The effect",
-            "template": "Once the lock is stuck: every subsequent gyro operation _______, with no alarm and no DSKY indication.",
-            "answers": ["sleeps waiting for a wake that never arrives"]
+            "template": "Once the lock is stuck: every subsequent gyro operation _______, with no alarm and no DSKY indication."
           }
         ]
       },
@@ -127,13 +125,11 @@
         "blanks": [
           {
             "cue": "All four required",
-            "template": "Deadlock requires _______ conditions to hold simultaneously. Preventing any _______ prevents deadlock.",
-            "answers": ["four", "one"]
+            "template": "Deadlock requires _______ conditions to hold simultaneously. Preventing any _______ prevents deadlock."
           },
           {
             "cue": "Circular wait",
-            "template": "Circular wait is sufficient but not _______  — an abandoned lock produces the same outcome without a circular chain.",
-            "answers": ["necessary"]
+            "template": "Circular wait is sufficient but not _______  — an abandoned lock produces the same outcome without a circular chain."
           }
         ]
       },
@@ -172,13 +168,11 @@
         "blanks": [
           {
             "cue": "Four strategies",
-            "template": "The four deadlock strategies are: prevention, _______, detection + recovery, and _______.",
-            "answers": ["avoidance", "ostrich"]
+            "template": "The four deadlock strategies are: prevention, _______, detection + recovery, and _______."
           },
           {
             "cue": "Banker's limit",
-            "template": "Avoidance requires knowing _______ resource needs in advance, which is impractical for most real systems.",
-            "answers": ["maximum"]
+            "template": "Avoidance requires knowing _______ resource needs in advance, which is impractical for most real systems."
           }
         ]
       },
@@ -217,13 +211,11 @@
         "blanks": [
           {
             "cue": "Lock leak",
-            "template": "A lock leak (CWE-772) occurs when a resource is _______ but never _______ on an error path.",
-            "answers": ["acquired", "released"]
+            "template": "A lock leak (CWE-772) occurs when a resource is _______ but never _______ on an error path."
           },
           {
             "cue": "RAII",
-            "template": "C++ RAII ties resource lifetime to _______ scope — the destructor releases the lock automatically on any exit.",
-            "answers": ["object"]
+            "template": "C++ RAII ties resource lifetime to _______ scope — the destructor releases the lock automatically on any exit."
           }
         ]
       }

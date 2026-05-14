@@ -2,38 +2,80 @@
 % Structural reference for the lecture-materials-assistant exam artifact.
 % All course-specific content replaced with bracketed placeholders.
 %
+% PORTED 2026-05-13 to the new Sp26 production format:
+%   - Charter + Helvetica + Inconsolata font stack
+%   - \metastrip{course}{term}{exam}{points} metadata strip
+%   - \examsection{NAME} small-caps section heading
+%   - \correctchoice / \wrongchoice semantic MC markup (color in answers mode)
+%   - \doublerule letterpress double rule under the title
+%   - \buildtime pdfTeX-primitive timestamp in left foot
+%   - \writelines{N} ruled response lines for short-answer questions
+%   - Even-page padding for duplex printing
+%   - Editorial \setlist metrics
+% Preserves per-student layer (\studentname / \studentserial / \issuedto) and
+% the answers-mode bridge for pa-exam-build compatibility.
+%
 % FILE NAMING: [course_num]-exam-[n]-[term]
 %   term format : sp/fa/su + 2-digit year  (e.g. sp26, fa25)
 %   parallel sections : append -a, -b      (e.g. 326-exam-1-sp26-a.tex)
-%   examples: 326-exam-1-sp26.tex, 378-exam-2-fa25.tex
 %
-% STUDENT COPY : \answersfalse  →  pdflatex → 326-exam-1-sp26.pdf
-% ANSWER KEY   : \answerstrue   →  pdflatex → 326-exam-1-sp26-key.pdf
+% STUDENT COPY : default (\answersfalse)            → student PDF
+% ANSWER KEY   : \def\answersmode{1} on cmdline     → key PDF (or \answerstrue inline)
 
-\documentclass{article}
-\usepackage[letterpaper, margin=1in]{geometry}
+\documentclass[11pt]{article}
+\usepackage[margin=0.9in,top=0.7in,bottom=0.85in,headheight=14pt,headsep=14pt]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% --- Print-optimized font stack ---
+\usepackage{charter}                          % Bitstream Charter body
+\usepackage[scaled=0.92]{helvet}              % Helvetica-clone sans (metadata)
+\usepackage[scaled=0.95,varl]{inconsolata}    % Inconsolata mono, varl alt
+\renewcommand{\familydefault}{\rmdefault}
+\linespread{1.06}
+\frenchspacing
+
 \usepackage{enumitem}
-\usepackage{listings}
-\usepackage{fontenc}
 \usepackage{needspace}
-\usepackage{xcolor}                            % \color{black!55} on \issuedto label
+\usepackage[hyphens]{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{listings}
+\usepackage{microtype}
 \usepackage{fancyhdr}
-\usepackage{pifont}                            % \textperiodcentered separator in serial footer
-\pagestyle{fancy}
-\fancyhf{}
+\usepackage{pifont}                           % Zapf Dingbats — manicule (\ding{43})
+\usepackage{xcolor}
+\definecolor{keyred}{HTML}{B71C1C}
+\definecolor{keygreen}{HTML}{1B5E20}
+\definecolor{keygrey}{HTML}{616161}
+
+% --- MC choice color: green-bold for correct, grey for distractors.
+% Gated by \ifanswers so student PDFs render identically to the pre-color source.
+\newcommand{\correctchoice}[1]{\ifanswers\textcolor{keygreen}{\textbf{#1}}\else #1\fi}
+\newcommand{\wrongchoice}[1]{\ifanswers\textcolor{keygrey}{#1}\else #1\fi}
+
+% --- Build-time stamp (pdfTeX primitives) ---
+% \time is minutes since midnight. Split into HH:MM by integer division.
+\newcount\stamphour
+\newcount\stampminute
+\stamphour=\time
+\divide\stamphour by 60
+\stampminute=\time
+\count255=\stamphour
+\multiply\count255 by 60
+\advance\stampminute by -\count255
+\newcommand{\padtwo}[1]{\ifnum#1<10 0\fi\the#1}
+\newcommand{\buildtime}{\the\year-\padtwo{\month}-\padtwo{\day}~\padtwo{\stamphour}:\padtwo{\stampminute}}
 
 % --- Answer key toggle ---
+% pa-exam-build injects \def\answersmode{1} on the cmdline for the key build;
+% bridge it to \ifanswers. LaTeX-native \answerstrue still works for direct edits.
 \newif\ifanswers
-\answersfalse   % <-- change to \answerstrue for answer key
-
-% Bridge: pa-exam-build injects \def\answersmode{1} for the key build.
-% If \answersmode is defined, flip \answerstrue. LaTeX-native \answerstrue still
-% works directly if someone edits the .tex.
+\answersfalse
 \makeatletter
 \@ifundefined{answersmode}{}{\answerstrue}
 \makeatother
 
-% --- Exam serial (variant-level; per-file fingerprint set at build time) ---
+% --- Exam serial (variant-level; per-file fingerprint set at build time by pa-exam-build) ---
 \providecommand{\examserial}{XXXXXXXX}
 
 % Per-student exam ID macros (see plans/specs/2026-05-13-per-student-exam-id-design).
@@ -59,89 +101,174 @@
 }
 \makeatother
 
-% --- Page footer: serial on the right, optional per-student ID appended ---
-\fancyfoot[L]{}
-\fancyfoot[C]{\thepage}
+% --- Running header + italic foot ---
+% Header: italic small charter — feels editorial, not corporate.
+% Foot: italic "p. N" — old-school typographic pagination.
+% Right foot: serial + optional per-student ID, both monospaced.
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textit{\small [COURSE CODE] · [TERM]}}
+\fancyhead[R]{\textit{\small [Exam Name]}}
+\fancyfoot[L]{\textit{\footnotesize Generated \buildtime}}
+\fancyfoot[C]{\textit{\small p.~\thepage}}
 \makeatletter
 \fancyfoot[R]{\textit{\footnotesize Serial \texttt{\examserial}%
   \ifx\studentserial\@empty\else
     \ \textperiodcentered\ ID \texttt{\studentserial}%
   \fi}}
 \makeatother
-\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
 
-% --- Code listing style ---
+% --- Letterpress double rule (thick + thin, 2pt apart) ---
+% Used under the title block. Centuries-old letterpress convention:
+% the double rule signals "title above".
+\newcommand{\doublerule}{%
+  \noindent\rule{\linewidth}{1.0pt}\par\vspace{1.5pt}%
+  \noindent\rule{\linewidth}{0.3pt}\par}
+
+% --- Drafting-style metadata strip ---
+% Two-column key/value table in small caps for labels, charter for values.
+% Hairline rule above and below; mimics an engineer's drawing title block
+% without the heavy chrome.
+\newcommand{\metastrip}[4]{%
+  \par\noindent\rule{\linewidth}{0.3pt}\par\vspace{2pt}%
+  \noindent\begin{minipage}{\linewidth}%
+  \begin{tabbing}%
+  \hspace{6em}\=\hspace{16em}\=\hspace{6em}\=\kill%
+  \textsc{course}~~\>#1\>\textsc{term}~~\>#2\\[1pt]%
+  \textsc{exam}~~\>#3\>\textsc{points}~~\>#4%
+  \end{tabbing}%
+  \end{minipage}\par\vspace{-4pt}%
+  \noindent\rule{\linewidth}{0.3pt}\par}
+
+% --- Section-heading command for question groups ---
+% Small caps + letterspaced for editorial gravitas; thin rule above.
+\newcommand{\examsection}[1]{%
+  \par\vspace{1.4em}%
+  \noindent\rule{\linewidth}{0.3pt}\par\vspace{2pt}%
+  \noindent{\textsc{\large #1}}%
+  \par\vspace{0.4em}}
+
+% --- Ornamental section break (optional, between MC and SA) ---
+\newcommand{\examornament}{%
+  \par\vspace{0.6em}\begin{center}\large $*$\quad$*$\quad$*$\end{center}\par}
+
+% --- List metrics: editorial proportions, tightened ---
+\setlist[enumerate,1]{leftmargin=2.4em, itemsep=0.45em, topsep=0.45em, parsep=0pt, label=\textbf{\arabic*.}}
+\setlist[enumerate,2]{leftmargin=1.8em, itemsep=0pt, topsep=0.1em, parsep=0pt, label=(\alph*)}
+
+% --- Code blocks: hairline-rule top + bottom, no fill, no line numbers ---
+% Short exam snippets don't need line-number anchors; the top/bottom hair-rules
+% read as a typographic "code" treatment without competing with a number column.
 \lstset{
   basicstyle=\ttfamily\small,
   breaklines=true,
-  frame=single,
-  xleftmargin=\parindent,
+  breakatwhitespace=true,
+  columns=fullflexible,
+  showstringspaces=false,
+  numbers=none,
+  tabsize=3,
+  aboveskip=4mm,
+  belowskip=4mm,
+  frame=tb,
+  framerule=0.4pt,
+  framesep=6pt,
+  xleftmargin=12pt,
+  xrightmargin=12pt,
 }
+
+% --- Ruled writing lines for short-answer responses ---
+\newcounter{wl}
+\newcommand{\writelines}[1]{%
+  \par\vspace{0.4em}%
+  \setcounter{wl}{0}%
+  \loop\ifnum\value{wl}<#1%
+    \noindent\rule[0.45em]{\linewidth}{0.3pt}\par\vspace{0.30in}%
+    \stepcounter{wl}%
+  \repeat}
+
+% --- Even-page padding for duplex printing ---
+% Two-sided printing reality: an odd-page exam means the back of the last
+% leaf is the front of the NEXT student's exam — bad. Pad with a blank
+% verso when total page count is odd.
+\AtEndDocument{%
+  \clearpage%
+  \ifodd\value{page}\else%
+    \thispagestyle{plain}%
+    \null\vfill%
+    \begin{center}\textit{\small This page intentionally left blank.}\end{center}%
+    \vfill\null%
+  \fi%
+}
+
+\setlength{\emergencystretch}{2em}
+\sloppy
+
+% --- Key banner activation: when in answers mode, flip the right header. ---
+\ifanswers\fancyhead[R]{\textit{\small [Exam Name] --- \textcolor{keyred}{\textbf{KEY}}}}\fi
 
 \date{}
 
 \begin{document}
 
 % -----------------------------------------------------------------------
-% HEADER
+% TITLE BLOCK
 % -----------------------------------------------------------------------
 
+\metastrip{[COURSE CODE]}{[TERM]}{[Exam Name]}{[N]}
+\par\vspace{0.4em}
+\begin{center}{\Large\itshape [Exam Name]}\end{center}
+\par\vspace{-0.2em}
+\doublerule
+\par\vspace{0.9em}
+
+\par\vspace{6pt}
+\noindent{\sffamily\bfseries\small\ding{43}~~PRINT CLEARLY. UNNAMED EXAMS CANNOT BE RETURNED OR GRADED.}
+\par\vspace{12pt}
+
 \issuedto
-\noindent\textbf{Name:}~\rule{0.35\linewidth}{0.4pt}%
-\hspace{0.05\linewidth}%
-\textbf{Student ID\#:}~\rule{0.20\linewidth}{0.4pt}
+\noindent{\sffamily\bfseries\large NAME:}~\rule[-3pt]{13.5cm}{0.8pt}
+\par\vspace{14pt}
+\noindent{\sffamily\bfseries\large STUDENT ID\#:}~\rule[-3pt]{5.5cm}{0.8pt}\hfill{\sffamily\bfseries\large DATE:}~\rule[-3pt]{4cm}{0.8pt}
+\par\vspace{6pt}
 
-\medskip
-\noindent\textbf{[COURSE CODE] -- [TERM]: [Exam Name] ([N] pts)}
-
-\ifanswers
-  \begin{center}\large\textbf{*** ANSWER KEY --- NOT FOR DISTRIBUTION ***}\end{center}
-\fi
+\ifanswers\par\vspace{0.4em}\noindent\colorbox{keyred}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\centering\color{white}\sffamily\bfseries\large $\star$~~ANSWER KEY~~---~~NOT FOR DISTRIBUTION~~$\star$}}\par\vspace{0.4em}\fi
 
 % -----------------------------------------------------------------------
 % DIRECTIONS
 % -----------------------------------------------------------------------
 
-\paragraph*{Directions.}
-\textit{Write on the exam paper.
-You are allowed one 3''$\times$5'' card of notes (front and back, handwritten only).
-\textbf{Absolutely no electronic devices of any kind are allowed on your desk
-during the exam.}}
+\par\vspace{0.6em}
+\noindent\ding{43}~\textbf{Directions.}~\textit{Write on the exam paper. No electronic devices allowed. Answer completely but as briefly as possible. All answers must be in your own words.}
+\par\vspace{0.4em}
 
 % -----------------------------------------------------------------------
 % MULTIPLE CHOICE
 % -----------------------------------------------------------------------
 
-\paragraph*{Multiple Choice ([N] pts each).}
-\textit{Circle the best answer for each question.
-\textbf{Do not} write the answer in the space---it will be marked incorrect.}
-
+\examsection{Multiple Choice}
 \begin{enumerate}
 
-% --- mc: standard 4-option ---
-\item Which of the following best describes [concept]?
-\ifanswers\quad\textbf{Answer: c}\fi
-\begin{enumerate}[label=\alph*.]
-  \item [plausible distractor]
-  \item [plausible distractor]
-  \item [correct answer]
-  \item [plausible distractor]
-\end{enumerate}
+% --- mc: standard 4-option (use \correctchoice / \wrongchoice for semantic markup) ---
+\item \textit{([N] pts)}~Which of the following best describes [concept]?
+  \begin{enumerate}[label=(\alph*)]
+    \item \wrongchoice{[plausible distractor]}
+    \item \wrongchoice{[plausible distractor]}
+    \item \correctchoice{[correct answer]}
+    \item \wrongchoice{[plausible distractor]}
+  \end{enumerate}
+  \ifanswers \textcolor{keyred}{\textbf{Answer:} c} \fi
 
-% --- tf: true/false (2 options only) ---
-\item [Statement about a concept that is either true or false.]
-\ifanswers\quad\textbf{Answer: a (True)}\fi
-\begin{enumerate}[label=\alph*.]
-  \item True
-  \item False
-\end{enumerate}
+% --- tf: true/false ---
+\item \textit{([N] pts)}~\textsc{T~/~F.}~[Statement about a concept that is either true or false.]
+  \ifanswers \textcolor{keyred}{\textbf{Answer:} True} \fi
 
-% --- code: code interpretation T/F ---
+% --- code: code-interpretation T/F ---
 % Show a complete, self-contained implementation (~15 lines max).
-% Incorrect implementations must have a subtle, realistic bug.
-% Do not place code questions back-to-back.
-\item The following implementation is correct.
-\ifanswers\quad\textbf{Answer: b --- [describe the specific bug]}\fi
+% Incorrect implementations must have a subtle, realistic bug. Don't place
+% code questions back-to-back.
+\item \textit{([N] pts)}~\textsc{T~/~F.}~The following implementation is correct:
 \begin{lstlisting}
 // Show a complete, self-contained implementation.
 // Correct or subtly broken -- make the bug realistic.
@@ -150,49 +277,41 @@ void example(void)
     // ...
 }
 \end{lstlisting}
-\begin{enumerate}[label=\alph*.]
-  \item True
-  \item False
-\end{enumerate}
-
-\newpage
+  \ifanswers \textcolor{keyred}{\textbf{Answer:} False --- [describe the specific bug]} \fi
 
 \end{enumerate}
 
 % -----------------------------------------------------------------------
-% SHORT ESSAY
+% SHORT ANSWER / ESSAY  (optional — comment out the whole section if MC-only)
 % -----------------------------------------------------------------------
 
-\paragraph*{Short essay and code interpretation ([N] pts each).}
-\textit{In the space provided below, answer the following questions completely,
-but as briefly as possible.
-Partial credit will be given for incomplete answers.}
-
+\examsection{Short Answer}
 \begin{enumerate}[resume]
 
-\needspace{3in}
-\item [Essay Q1: compare/contrast, explain a tradeoff, or analyze a scenario.
-       Should require synthesis --- not answerable from a single definition.]
-\ifanswers
-  \par\medskip\noindent\textbf{Model answer:}
-  [Write a complete answer usable as a grading rubric.]
-  \par Full credit requires [specific criterion A] AND [specific criterion B].
-  \par Partial credit for [partial criterion].
-\else
-  \vspace{2.5in}
-\fi
+\item \needspace{2.5in} \textit{([N] pts)}~[Synthesis / compare-contrast / analyze-scenario prompt. Should require thinking — not answerable from a single definition.]
+  \ifanswers \par\smallskip \textcolor{keyred}{\textit{Key:}} [Model answer usable as a grading rubric.]
+  \par\smallskip \textsc{\footnotesize Coverage:}~{\footnotesize [lecture S#] $\cdot$ [textbook §] $\cdot$ [reading list reference]}
+  \par\smallskip \textbf{Gradescope rubric} \textit{(additive, [N] pts):}
+  \begin{itemize}[noitemsep, leftmargin=1.5em, topsep=2pt]
+    \item \textbf{\textcolor{keygreen}{+[N]}} \quad [criterion satisfied] \textit{([rubric-category])}
+    \item \textbf{\textcolor{keygrey}{+0}} \quad [criterion not met] \textit{([rubric-category])}
+    \item \textbf{\textcolor{keygrey}{+0}} \quad Blank / off-topic \textit{(catchall)}
+  \end{itemize}
+  \else \writelines{16} \fi
 
-\needspace{3in}
-\item [Essay Q2: second synthesis or code-interpretation question.]
-\ifanswers
-  \par\medskip\noindent\textbf{Model answer:}
-  [Write a complete answer usable as a grading rubric.]
-  \par Full credit requires [specific criterion A] AND [specific criterion B].
-  \par Partial credit for [partial criterion].
-\else
-  \vspace{2.5in}
-\fi
+\item \needspace{2.5in} \textit{([N] pts)}~[Second synthesis or code-interpretation question.]
+  \ifanswers \par\smallskip \textcolor{keyred}{\textit{Key:}} [Model answer.]
+  \par\smallskip \textsc{\footnotesize Coverage:}~{\footnotesize [lecture S#] $\cdot$ [textbook §] $\cdot$ [reading list reference]}
+  \par\smallskip \textbf{Gradescope rubric} \textit{(additive, [N] pts):}
+  \begin{itemize}[noitemsep, leftmargin=1.5em, topsep=2pt]
+    \item \textbf{\textcolor{keygreen}{+[N]}} \quad [criterion] \textit{([rubric-category])}
+    \item \textbf{\textcolor{keygrey}{+0}} \quad Blank / off-topic \textit{(catchall)}
+  \end{itemize}
+  \else \writelines{16} \fi
 
 \end{enumerate}
+
+\par\vfill
+\begin{center}\small\textit{End of exam.}\end{center}
 
 \end{document}

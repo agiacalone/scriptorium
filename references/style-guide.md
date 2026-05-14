@@ -4,6 +4,97 @@ Full style specifications for all artifact types.
 
 ---
 
+## Tag Taxonomy (canonical, v1.0)
+
+The `_lecture_main.md` source uses Obsidian-style tags + Dataview-style inline
+fields. Every generator walks the same parsed AST + tag indexes. Validators
+enforce the invariants below as hard errors and block compilation.
+
+**Role tags** (what kind of block this is):
+- `#concept` — a teachable idea or definition
+- `#blank` — a Cornell-handout fill-in cue. **Requires `[slide:: N]`** (hard error if missing).
+- `#question` — a quiz / bank / study question. **`mc` requires `[answer::]`** (hard error).
+- `#slide` — a slide block. **Requires `[layout:: …]`** from the 11-layout enum.
+- `#diagram` — a figure or partial diagram. **Requires `[alt:: …]`** (ADA Title II).
+- `#example`, `#case-study`, `#activity`, `#discussion`
+
+**Scope tags** (which lecture section the block belongs to):
+- `#section/I`, `#section/II`, … through `#section/XII`
+- `#section/vocab` — vocabulary block, surfaces in handout key-terms region
+
+**Audience overrides** (block emits to only one artifact):
+- `#cornell-only` — handout only
+- `#notes-only` — instructor lecture notes only
+- `#slides-only` — slide deck only
+
+**Question type** (`#question` blocks):
+- `#type/mc` — multiple choice, 4 options, requires `[answer::]`
+- `#type/tf` — true/false, requires `[answer::]`
+- `#type/code` — code-interpretation T/F, requires `[answer::]`
+- `#type/fib` — fill-in-the-blank (quiz/handout only, never exams)
+- `#type/sa` — short answer
+
+**Difficulty** (`#question` blocks):
+- `#difficulty/1` — ★, recall
+- `#difficulty/2` — ★★, apply
+- `#difficulty/3` — ★★★, analyze / synthesize
+
+**Eligibility:**
+- `#exam-eligible` — bank entry available for exam assembly
+- `#adversarial` — attacker-mindset framing (Security courses)
+
+**Status:**
+- `#draft` — block is in flight, may be excluded from generation
+- `#needs-source` — citation pending; reading-list will surface this
+
+**Semester usage** (multi-valued — accumulates over an item's lifetime):
+- `#used/<term>` — record that this item was used in semester `<term>` (e.g.
+  `#used/sp26`, `#used/fa25`). Terms use the same shorthand as frontmatter
+  `term:` (sp/su/fa + 2-digit year). Items may carry many `#used/*` tags; the
+  Obsidian tag pane lets the author list every item used in any past semester.
+
+### Reproducibility & staleness
+
+The `#used/<term>` tag has two interlocking purposes:
+
+1. **Reproduce a past semester exactly.** `node generate.js ... --strict-semester sp24`
+   filters every role-based query to items tagged `#used/sp24`. Untagged items
+   are excluded — the deck/exam matches what shipped that semester.
+2. **Find stale content that needs revisiting.** `node generate.js audit
+   --main <path>` lists items whose newest `#used/*` is older than the current
+   term, plus items with no `#used/*` tag at all. Items 4+ semesters stale flag
+   visibly so they bubble to the top during semester prep.
+
+The exam generator can append `#used/<term>` automatically via
+`node generate.js exam --spec <spec> --mark-used <term>` — runs after a
+successful build, idempotent on re-run, edits each picked item's source main
+in place at `item.sourceLine`.
+
+A loose filter — `--semester sp26` — keeps `#used/sp26`-tagged items AND items
+with no `#used/*` tag at all (untagged = evergreen, always usable). Use loose
+when building a current-semester deck that should pull in recently-validated
+content alongside general-purpose unmarked content.
+
+In Obsidian, find every item used in a given semester via the tag pane
+(`#used/sp26`) or with Dataview, e.g.
+
+```dataview
+LIST FROM "classes/326" WHERE !contains(file.tags, "#used/sp26")
+```
+
+**Inline fields** (`[key:: value]` syntax, Dataview-compatible): `[slide::]`,
+`[layout::]`, `[alt::]`, `[answer::]`, `[difficulty::]`, `[points::]`,
+`[time::]`, `[source::]`, `[topic::]`.
+
+The 11-layout slide enum (validated): `title`, `agenda`, `concept`, `diagram`,
+`code`, `comparison`, `case-study`, `activity`, `discussion`, `summary`, `blank`.
+
+For the full design rationale (why tags + inline fields, why a markdown
+monolith over a JSON spec, migration story from `lecture-spec.json` to
+`_lecture_main.md`) see `docs/specs/2026-05-07-md-monolith-revamp-design.md`.
+
+---
+
 ## Student-Facing Coverage Policy
 
 Student-facing lecture materials are a replacement for distributing the slide deck,
@@ -92,7 +183,7 @@ hint when the language is recognized by `listings`; otherwise omit.
 fit inside the notes column. If a block would exceed ~10 lines, split across rows
 or use an ellipsis comment (`// ...`) to abbreviate.
 
-**In slides (.pptx):** dark panel `1E293B`, Menlo 11pt, body text color `F1F5F9`.
+**In slides (Beamer .tex/.pdf):** dark panel `1E293B`, Menlo 11pt, body text color `F1F5F9`.
 Limited syntax highlighting:
 - Keywords / control flow: indigo `6366F1`
 - String literals: amber `F59E0B`
@@ -157,7 +248,7 @@ partially-complete structures for students to fill in during lecture:
 - Blank cells use `_______`; blank state transition labels use `→ _______`
 - Mark the cue column with the figure caption so students know what they're looking at
 
-### Diagrams in Slides (.pptx)
+### Diagrams in Slides (Beamer .tex/.pdf)
 
 Use the card/panel pattern (`1E293B` background) for diagram containers. For
 structured diagrams (state machines, memory maps):
@@ -275,23 +366,6 @@ Functional regions keep stable semantic colors regardless of section kind:
 - **Vocabulary grid:** light lavender `F5F3FF` with purple left bar
 - **Summary strip:** light blue `DBEAFE` with blue top bar
 
-### Answer Key (instructor use)
-
-Each Cornell handout build emits two PDFs from a single `.tex` source:
-- `[topic]_cornell_handout.pdf` — student copy (yellow cells empty for handwriting / typing)
-- `[topic]_cornell_handout_key.pdf` — instructor copy with the answers shown in red bold inside the yellow cells, plus a red `*** ANSWER KEY — INSTRUCTOR USE ONLY ***` banner at the top of page 1
-
-Generation uses the same toggle pattern as `quiz.js`: `\newif\ifanswers` in the
-preamble, compiled twice (once with `\answersfalse`, then string-replaced to
-`\answerstrue` for the key). Spec fields that drive the key:
-
-- `blanks[].answers` — array of strings, one per `_______` slot in the blank's `template`. A single string is also accepted as syntactic sugar for `[answer]`. Missing answers render as `?` in the key so gaps are visually obvious.
-- `vocabulary` — accept either the legacy `string[]` form (terms only; key vocabulary cells stay blank) or `[{term, definition}]` (definitions appear in red bold inside the yellow cells in the key).
-
-Scaffold rows derived from `section.points` are not "blanks with answers" —
-they are discussion prompts the instructor narrates during lecture. They render
-identically in both versions.
-
 ### Blank Types (mix deliberately)
 
 | Type | Example |
@@ -356,6 +430,211 @@ explicitly. The corresponding notes-column cell must be scaffolded, not blank.
 **Never leave silent gaps.** Every blank must map to a readable answer on a specific
 projected slide. If no slide covers it, either add it to a slide or convert the blank
 to scaffolded text.
+
+---
+
+## Reading-List Companion (.md)
+
+A markdown companion to the Cornell handout. For every cue/blank on the handout,
+the reading list points students at the specific textbook section + supplementary
+primary sources where the answer lives. Two use cases:
+
+1. **Study guide** — students consult it to fill in blanks they missed during lecture.
+2. **Lecture replacement** — when formal lecture is cancelled (e.g. last day of
+   semester pre-exam review), the reading list is the deliverable that takes its
+   place. Self-sufficient: every cue cites a section students can read.
+
+**Hand-authored, not generated.** This artifact is content-driven and domain-aware
+— it requires reading both the cornell handout and the textbook outline and writing
+the cue-by-cue mapping by hand. There is no JS generator. The skill's job here is
+structure enforcement (the rules below), not content production.
+
+### Variants by scope
+
+| Variant | Filename | When |
+|---|---|---|
+| Single-topic | `[topic]_reading_list.md` | Companion to one Cornell handout |
+| Multi-topic | `[scope]_reading_list.md` (e.g. `final_third_reading_list.md`) | Covers an entire unit or section of the semester; one document holds Part A, Part B, etc. — one part per cornell handout |
+
+### Frontmatter shape
+
+```yaml
+---
+title: [Topic Name] — Reading List
+course: [Course code] — [Course name]
+type: reading-list
+companion-to: "[[<topic>_cornell_handout]]"   # or a list for multi-topic
+tags:
+  - <course-slug>          # cecs326 / cecs378 / etc.
+  - <subject-slug>         # operating-systems / introduction-to-computer-security-principles
+  - <topic-slug>           # e.g. file-systems-abstraction-and-naming
+  - reading-list
+  - study-guide
+icon: LiGraduationCap
+iconColor: var(--text-normal)
+---
+```
+
+For multi-topic variants, add `final-third` (or analogous scope tag) to `tags:`,
+and convert `companion-to:` to a YAML list of all paired cornell handouts.
+
+### Required callouts at the top
+
+1. **How-to-use callout** — orient the student. Explain that the doc pairs with
+   the Cornell handout, and that they should read the cited section, fill the
+   blank in their own words, then complete the post-lecture Self-Quiz and Summary
+   strips.
+
+   ```markdown
+   > [!info] How to use this document
+   > Pair this side-by-side with your **[Topic] Cornell handout**. For each blank
+   > you didn't fill in during lecture, this map tells you exactly where in the
+   > assigned reading the answer lives. ...
+   ```
+
+2. **Primary-source callout** — name the textbook + chapter + page-range
+   approximation. State that section numbers below are relative to that chapter.
+
+   ```markdown
+   > [!source] Primary source
+   > [Author], *[Title]*, [edition] — **Chapter [N], §[X.Y]–§[X.Z]**.
+   > Section numbers below refer to that chapter.
+   ```
+
+3. **"Cues newer than the textbook" warning** *(when applicable)* — when material
+   on the handout postdates the assigned edition (modern hardware features,
+   recent CVEs, current industry milestones), warn students explicitly that some
+   cues will not resolve in the textbook and that the row will cite a primary
+   source instead.
+
+   ```markdown
+   > [!warning] Cues newer than the textbook
+   > Several cues — especially [list] — cover material newer than [Author] [edition].
+   > For modern content, follow the supplementary citations in those rows. Each row
+   > tells you which path applies.
+   ```
+
+### Per-section cue → source-pointer table
+
+Each section of the cornell handout gets a corresponding section in the reading
+list, with the same Roman-numeral numbering and section title. Inside each
+section, render a two-column markdown table:
+
+```markdown
+## I. [Section title from cornell handout]
+
+| Cue from handout | Read here |
+|---|---|
+| **[Cue label, verbatim or trimmed]** ([brief context if helpful]) | §[X.Y] *[Subsection title]* — [optional one-liner: "diagram + field-by-field walk", "explicit definition", etc.] |
+| **[Cue label]** | NOT in [edition] — see [supplementary primary source] |
+| ... | ... |
+```
+
+Rules:
+
+- Every cue from the handout's section appears as a row. Don't skip cues, even
+  if the answer is implied by an adjacent row.
+- Cue labels are bold and match the cornell handout's wording closely so students
+  can ctrl-F between the two documents.
+- The "Read here" column is concrete: section number + subsection title, or
+  primary-source citation if the textbook doesn't cover it. Page ranges are
+  optional and approximate (note this in the primary-source callout).
+- Mark out-of-textbook cues clearly: `NOT in [edition] — see [source]`.
+- One-liner clarifications in the source column are fine when the section title
+  alone is ambiguous (e.g., *§4.3.4 Shared Files — second half, after hard-link
+  mechanism*).
+
+### Vocabulary block (sub-section)
+
+If the cornell handout has a Vocabulary block, mirror it as the **first sub-section**
+of the reading list (before Section I). Use a vocabulary table mapping each term
+to where it's defined:
+
+```markdown
+## Vocabulary
+
+Read all of [primary-source range] before answering vocabulary. Every term is
+defined or used across [those sections].
+
+| Term | Where it's defined |
+|---|---|
+| **[term]** | §[X.Y] *[Subsection]* — [optional: "opening paragraph", "diagram", etc.] |
+```
+
+### Self-Quiz mapping
+
+If the cornell handout has a Self-Quiz, do **not** answer the questions.
+Self-quiz answers are still the student's words. Instead, render a "sections
+to draw from" mapping so students know where to read for each synthesis question:
+
+```markdown
+## Self-Quiz
+
+The Self-Quiz at the end of the handout is a synthesis exercise — there's no
+single section that answers each question. Use the relevant sections above to
+compose your own answers.
+
+| Quiz question | Sections to draw from |
+|---|---|
+| **Q1.** [Verbatim or summarized question] | §[X.Y] + [supplementary source if relevant] |
+```
+
+### Summary section reminder
+
+Surface that the Summary block is the student's own words. Don't fill it in.
+
+```markdown
+## Summary section
+
+The Summary block on the handout is **your own words**. After working the cues
+above, write [N] sentences that capture (a) [theme A], (b) [theme B], and
+(c) [theme C].
+```
+
+### References
+
+End with a comprehensive References section grouping sources by category:
+**Textbook**, **Standards / federal guidance**, **Foundational papers**,
+**Hardware / architecture** (when applicable), **Modern reportage and
+incidents** (when applicable), **Tooling and educational**, **Cheat sheets**.
+
+Every URL or document cited in the cue tables must appear in References. This
+gives students a single place to find every source the document references and
+makes it self-auditing — if a row cites a source not in References, something
+is wrong.
+
+### Multi-topic structure
+
+For consolidated multi-topic reading lists (e.g. `final_third_reading_list.md`):
+
+- Keep the single-document frontmatter and top-of-document callouts.
+- Split the body into `# Part A — [Topic A]` and `# Part B — [Topic B]` sections
+  (level-1 headings), each one a complete reading list (Vocabulary →
+  Sections I, II, … → Self-Quiz → Summary).
+- Prefix each part's section anchors with the part letter so they don't collide:
+  `## A.I — [Section title]`, `## B.III — [Section title]`, etc.
+- One unified References section at the bottom covering both parts.
+
+### PDF render path
+
+When the `.md` companion needs to be a Canvas-attachable PDF, use the pandoc +
+lualatex pipeline documented in `SKILL.md` (frontmatter strip + wikilink
+flattening + Unicode-glyph normalization, then `--pdf-engine=lualatex` with
+`--toc`). Keep the `.md` as the canonical artifact; regenerate the `.pdf`
+whenever the `.md` updates.
+
+### Don'ts
+
+- **Don't fill in answers.** Cues map to *where* the answer lives, not to the
+  answer itself. Students filling blanks in their own words is the load-bearing
+  pedagogy.
+- **Don't omit cues to make the doc shorter.** Every cue on the handout deserves
+  a row. If the cue is genuinely synthesis-only (no readable source), mark it
+  *(synthesis — no source; use the cornell context)* — but those should be rare.
+- **Don't use page numbers as the primary citation** — section + subsection
+  numbers are stable across editions; pages drift. Page ranges are an optional
+  affordance, not the primary identifier.
+- **Don't generate this artifact programmatically.** It is hand-authored.
 
 ---
 
@@ -735,7 +1014,7 @@ approval.
 
 ---
 
-## Slide Deck (.pptx)
+## Slide Deck (Beamer .tex / .pdf)
 
 ### Color Palette — "CS Modern" Dark Theme
 
@@ -760,7 +1039,7 @@ approval.
 
 ### Every Content Slide Must Have
 
-- Indigo top stripe (6pt, full width, `6366F1`)
+- Indigo frametitle accent stripe (Beamer frametitle template, 6pt, full width, `6366F1`)
 - Section tag badge (indigo rectangle `6366F1`, white all-caps label, top-left)
 - Slide title (large, white or indigo, Calibri Black)
 - Footer: `[COURSE] — [Topic]   |   N / TOTAL` centered, muted, 8pt
@@ -772,7 +1051,7 @@ Dark panel `1E293B` with shadow; left accent bar in section color for emphasis r
 ### Icons
 
 Use simple, high-contrast icons only when they clarify the slide. Prefer native
-PptxGenJS shapes or bundled image assets over introducing extra icon-processing
+Beamer/TikZ shapes or bundled image assets over introducing extra icon-processing
 dependencies. If raster icons are used, render them at 256px minimum before
 placing them on slides.
 

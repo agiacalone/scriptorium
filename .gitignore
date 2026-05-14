@@ -1,28 +1,10 @@
-# Generated lecture artifacts (keep out of skill repo)
-*_notes.docx
-*_cornell.docx
-*_questions.docx
-*_quiz.docx
-*_slides.pptx
-*_readme.md
-slide-*.jpg
-*.pdf
-
-# Generated question banks and exams (course-specific, not part of skill)
-*_question_bank.md
-*-exam-*.tex
-*-exam-*.pdf
-*-exam-*-key.pdf
-
-# LaTeX build artifacts
+node_modules/
+*.log
+out/
 *.aux
 *.log
-
-# But keep the reference exam template
-!references/reference_exam.tex
-
-# macOS
+*.out
+*.synctex.gz
 .DS_Store
-
-# Node (if scripts are ever run here)
-node_modules/
+*.out
+out/
