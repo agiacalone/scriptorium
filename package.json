@@ -10,12 +10,16 @@
     "init-spec": "node init-spec.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "node --check generate.js && node --check init-spec.js && node --check lib/context.js && node --check lib/files.js && node --check lib/spec.js && node --check lib/prompt-parser.js && node --check lib/docx-helpers.js && node --check lib/tex-helpers.js && node --check generators/lecture-notes.js && node --check generators/cornell-handout.js && node --check generators/study-questions.js && node --check generators/quiz.js && node --check generators/readme.js && node --check generators/slides.js && node --check generators/question-bank.js && node --check generators/exam.js"
+    "check": "node --check generate.js && node --check init-spec.js && node --check lib/context.js && node --check lib/files.js && node --check lib/spec.js && node --check lib/prompt-parser.js && node --check lib/docx-helpers.js && node --check lib/tex-helpers.js && node --check generators/lecture-notes.js && node --check generators/cornell-handout.js && node --check generators/study-questions.js && node --check generators/quiz.js && node --check generators/readme.js && node --check generators/slides.js && node --check generators/question-bank.js && node --check generators/exam.js",
+    "slides:dev": "slidev",
+    "slides:build": "slidev build"
   },
   "dependencies": {
+    "@slidev/cli": "^0.49.0",
     "docx": "^9.5.1",
     "gray-matter": "^4.0.3",
-    "markdown-it": "^14.1.0"
+    "markdown-it": "^14.1.0",
+    "vue": "^3.4.0"
   },
   "devDependencies": {
     "vitest": "^4.1.5"

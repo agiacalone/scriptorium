@@ -1,0 +1,1 @@
+{ "name": "slidev-theme-blueprint", "version": "0.0.0", "private": true, "keywords": ["slidev-theme"], "engines": { "slidev": ">=0.48.0" } }
