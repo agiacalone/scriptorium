@@ -182,15 +182,11 @@ hint when the language is recognized by `listings`; otherwise omit.
 fit inside the notes column. If a block would exceed ~10 lines, split across rows
 or use an ellipsis comment (`// ...`) to abbreviate.
 
-**In slides (Beamer .tex/.pdf):** dark panel `1E293B`, Menlo 11pt, body text color `F1F5F9`.
-Limited syntax highlighting:
-- Keywords / control flow: indigo `6366F1`
-- String literals: amber `F59E0B`
-- Comments: muted `94A3B8`
-- Everything else: body white `F1F5F9`
-
-Keep slide code blocks to ≤15 lines. If the relevant section is longer, show the
-key lines and replace omitted sections with a comment: `// ... (full impl in notes)`.
+**In slides (Slidev .md):** standard fenced code block with language hint; syntax
+highlighting is handled by the active theme (blueprint: cyan accent; terminal:
+phosphor-green accent). Keep slide code blocks to ≤15 lines. If the relevant
+section is longer, show the key lines and replace omitted sections with a
+comment: `// ... (full impl in notes)`.
 
 **In question bank (.md):** standard fenced code block with language hint.
 
@@ -247,17 +243,16 @@ partially-complete structures for students to fill in during lecture:
 - Blank cells use `_______`; blank state transition labels use `→ _______`
 - Mark the cue column with the figure caption so students know what they're looking at
 
-### Diagrams in Slides (Beamer .tex/.pdf)
+### Diagrams in Slides (Slidev)
 
-Use the card/panel pattern (`1E293B` background) for diagram containers. For
-structured diagrams (state machines, memory maps):
-- Boxes: rounded rectangle, panel color `334155`, border indigo `6366F1`
-- Arrows: sky `38BDF8`, 2pt weight
-- Labels: body white `F1F5F9`, Calibri 11pt
-- Active/highlighted state: indigo fill `6366F1`, white label
+Use the `<Schematic>` component for all diagram slides. The component wraps
+structured content (tables, ASCII diagrams, Markdown-rendered structures) in a
+styled panel consistent with the active theme. The `[alt::]` field from the
+monolith block is mandatory and surfaces as both HTML alt text and a visible
+caption.
 
-For sequence/timeline diagrams, use a horizontal swimlane layout with one row per
-actor. Highlight the current step in amber `F59E0B`.
+For sequence/timeline diagrams, use a Markdown table inside `<Schematic>` with
+one row per actor or time step. The active theme handles highlight styling.
 
 ---
 
@@ -935,61 +930,142 @@ approval.
 
 ---
 
-## Slide Deck (Beamer .tex / .pdf)
+## Slide Deck (Slidev .md)
 
-### Color Palette — "CS Modern" Dark Theme
+Slides are Slidev markdown files (`[topic]_slides.md`). The generator writes a
+complete Slidev deck — headmatter, per-slide frontmatter fences, and body
+content — consumed directly by `npx slidev`. No PDF export; the deck is a
+live-presentation artifact, not a distributed document.
 
-| Role | Color |
+### Theme Selection
+
+Theme is selected automatically from the monolith's `course:` frontmatter and
+written as an absolute `theme:` path into the deck headmatter:
+
+| Course(s) | Theme |
 |---|---|
-| Background | deep slate `0F172A` |
-| Panel / card background | `1E293B` |
-| Secondary panel | `334155` |
-| Primary accent | indigo `6366F1` |
-| Bright accent (hover / highlight) | `818CF8` |
-| Body text | `F1F5F9` |
-| Muted text | `94A3B8` |
-| Warning / stat | amber `F59E0B` |
-| Positive / success | emerald `22C55E` |
-| Secondary accent | sky `38BDF8` |
+| CECS 326, CECS 378 | **blueprint** |
+| CECS 478 | **terminal** |
+| (default when unrecognized) | **blueprint** |
 
-### Layout
+---
 
-- 16×9, 10" × 5.625"
-- Calibri Black for titles (36–40pt)
-- Calibri for body (11–14pt)
+### Theme Palettes
 
-### Every Content Slide Must Have
+#### Blueprint (CECS 326, 378)
 
-- Indigo frametitle accent stripe (Beamer frametitle template, 6pt, full width, `6366F1`)
-- Section tag badge (indigo rectangle `6366F1`, white all-caps label, top-left)
-- Slide title (large, white or indigo, Calibri Black)
-- Footer: `[COURSE] — [Topic]   |   N / TOTAL` centered, muted, 8pt
+Inspired by technical schematics and engineering diagrams. Dense but legible for
+systems and security survey content.
 
-### Card / Panel Pattern
-
-Dark panel `1E293B` with shadow; left accent bar in section color for emphasis rows.
-
-### Icons
-
-Use simple, high-contrast icons only when they clarify the slide. Prefer native
-Beamer/TikZ shapes or bundled image assets over introducing extra icon-processing
-dependencies. If raster icons are used, render them at 256px minimum before
-placing them on slides.
-
-### No accent lines under titles — use whitespace or background color.
-
-### Standard Slide Structure
-
-| Slide | Content |
+| Role | Color / spec |
 |---|---|
-| 1 | Title (topic, subtitle, 3 stat callouts in bottom bar) |
-| 2 | Agenda (6-card grid with numbered sections) |
-| 3 | Opening hook / motivation |
-| 4 | Core thesis / central argument |
-| 5–6 | Framework or taxonomy (tables, grids, icon rows) |
-| 7–10 | Case studies (4-column process/event chain cards + key lesson bar) |
-| 11 | Real-world context / implications |
-| 12 | Activity slide (problem, scenario, or live demo) |
-| 13–14 | Solutions / best practices |
-| 15 | Discussion questions |
-| 16 | Closing / key takeaways + reading list |
+| Background | deep navy `#0a1a2f` |
+| Primary accent | cyan `#35d6e8` |
+| Structure / grid | hairline cyan grid, 5% opacity |
+| Title font | Archivo Black |
+| Body font | Hanken Grotesk |
+| Code font | JetBrains Mono |
+
+#### Terminal (CECS 478)
+
+Hacker-terminal aesthetic for adversarial security content. Phosphor-green on
+near-black, scanline texture.
+
+| Role | Color / spec |
+|---|---|
+| Background | near-black `#0b0f0b` |
+| Primary accent | phosphor green `#33ff8a` |
+| Secondary accent | amber (warnings, callouts) |
+| All fonts | monospace stack (JetBrains Mono / system-mono) |
+| Texture | subtle scanline overlay |
+
+---
+
+### Layout Mapping
+
+The 11 `[layout::]` values from the monolith map to Slidev built-in layouts and
+custom components as follows:
+
+| `[layout::]` value | Slidev layout / component | Notes |
+|---|---|---|
+| `title` | `cover` | Deck title slide |
+| `agenda` | `default` | Agenda card grid in body |
+| `concept` | `default` | Standard content slide |
+| `diagram` | `<Schematic>` component | See below — requires `[alt::]` |
+| `code` | `default` | Code block is primary body content |
+| `comparison` | `two-cols` | Left / right comparison columns |
+| `case-study` | `<EventChain>` component | See below |
+| `activity` | `center` | Centered prompt + scenario |
+| `discussion` | `center` | Discussion questions, centered |
+| `summary` | `default` | Summary / takeaway content |
+| `blank` | `center` | Blank canvas, centered |
+| `vocab` / `section-divider` | `two-cols` / `center` | Vocab grids use two-cols; dividers use center |
+
+#### `<Schematic>` component
+
+Used for diagram slides (`[layout:: diagram]`). Wraps diagram content in a
+styled container with caption and alt text. Consumes the `[alt::]` inline field
+from the monolith block as the `alt` prop (ADA Title II — hard error if missing).
+
+```markdown
+<Schematic alt="Memory layout: stack at top, heap below, BSS, text at bottom">
+
+| Region | Contents |
+|---|---|
+| Stack | Local vars, return addrs |
+| Heap | Dynamic allocation |
+| BSS | Uninit globals |
+| Text | Executable code |
+
+</Schematic>
+```
+
+The `[alt::]` field on every `#diagram` block is mandatory — the validator
+blocks generation if it is absent, same as for printed artifacts.
+
+#### `<EventChain>` component
+
+Used for case-study slides (`[layout:: case-study]`). Renders a horizontal
+4-column process/event-chain card row with a key-lesson bar below.
+
+```markdown
+<EventChain
+  steps='["Recon","Exploit","Pivot","Exfil"]'
+  lesson="Lateral movement is the dwell-time amplifier."
+/>
+```
+
+---
+
+### Standard Deck Structure
+
+| Slide | Layout | Content |
+|---|---|---|
+| 1 | `cover` | Topic title, subtitle, 3 stat callouts |
+| 2 | `default` (agenda) | 6-card section grid with numbered sections |
+| 3 | `default` | Opening hook / motivation |
+| 4 | `default` | Core thesis / central argument |
+| 5–6 | `default` or `two-cols` | Framework or taxonomy (tables, grids) |
+| 7–10 | `<EventChain>` | Case studies with event-chain cards + key lesson |
+| 11 | `default` | Real-world context / implications |
+| 12 | `center` | Activity slide (problem, scenario, or live demo) |
+| 13–14 | `default` | Solutions / best practices |
+| 15 | `center` | Discussion questions |
+| 16 | `default` | Closing / key takeaways + reading list |
+
+---
+
+### Code Blocks in Slides (Slidev)
+
+Slidev uses standard fenced code blocks with language hints. Syntax highlighting
+is theme-handled — no manual color assignment needed. Keep slide code blocks to
+≤15 lines; abbreviate with `// ... (full impl in notes)` if longer.
+
+---
+
+### ADA Rule (carried forward)
+
+`[alt::]` is required on every `#diagram` block and every slide using
+`[layout:: diagram]`. The validator enforces this as a hard error. The
+`<Schematic>` component surfaces the alt text as both an HTML `alt` attribute
+and a visible caption slot.

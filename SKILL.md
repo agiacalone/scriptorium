@@ -4,7 +4,7 @@ description: >
   Generates lecture material sets for CS professors: lecture notes (.pdf),
   Cornell note-taking handouts (.pdf), study questions (.md), pop quizzes (.pdf),
   GitHub Classroom README assignments (.md), topic-wide question banks (.md),
-  reading-list companions (.md), and Beamer slide decks (.tex/.pdf). Use this
+  reading-list companions (.md), and Slidev slide decks (.md). Use this
   skill whenever a user asks to generate, create, assemble, revise, or extend any
   lecture materials, course handouts, slides, quizzes, study questions, question
   banks, or GitHub Classroom assignments — even partial requests like "make me a
@@ -67,11 +67,11 @@ These fields live in the YAML frontmatter and `#meta` section of the
 | Question bank | `[topic]_question_bank.md` | ~50 tagged questions (mc/tf/code/fib/sa), scoped to full topic (2–4 sessions) |
 | Reading-list companion | `[topic]_reading_list.md` (single topic) or `[scope]_reading_list.md` (multi-topic, e.g. `final_third_reading_list.md`) | Hybrid scaffold paired 1:1 (or 1:N) with Cornell handout(s); the generator emits a `<!-- generator: cue-tables -->` … `<!-- /generator -->` fence with cue-to-source rows; manual content outside the fence is preserved on regen. Can also serve as a pre-exam review deliverable. |
 | GitHub README | `README.md` | GitHub Classroom assignment (reading or lab/programming variant) |
-| Slide deck | `[topic]_slides.tex` + `[topic]_slides.pdf` | 14–18 Beamer slides, CS Modern dark slate theme, indigo frametitle accent stripe |
+| Slide deck | `[topic]_slides.md` (Slidev markdown) | 14–18 slides. Theme auto-selected from `course:` frontmatter: **blueprint** (CECS 326, 378) or **terminal** (CECS 478); default blueprint. Present live via `npx slidev [topic]_slides.md` — no PDF export (slides are a presentation artifact, not a distributed document). |
 
-All printed-handout artifacts (lecture notes, Cornell handout, pop quiz,
-slides) render to PDF via `pdflatex`. The `.docx` and `.pptx` formats are no
-longer emitted by any generator.
+Printed-handout artifacts (lecture notes, Cornell handout, pop quiz) render to
+PDF via `pdflatex`. Slides emit Slidev markdown (`.md`) — no PDF export. The
+`.docx` and `.pptx` formats are no longer emitted by any generator.
 
 > **Exams are controlled documents — built by lectern, not here.** Assemble an exam
 > `.tex` by hand from the topic's `*_question_bank.md` using lectern's
@@ -137,12 +137,17 @@ node generate.js --main <vault>/classes/<course>/<topic>_lecture_main.md --out .
 npm install
 ```
 
-A LaTeX toolchain with `pdflatex` is required for the lecture-notes, Cornell, quiz,
-and slide PDFs. Required TeX packages: `texlive-needspace`, `texlive-ec`,
+A LaTeX toolchain with `pdflatex` is required for the lecture-notes, Cornell, and
+quiz PDFs. Required TeX packages: `texlive-needspace`, `texlive-ec`,
 `texlive-tabulary`, `texlive-mdframed`, `texlive-collection-fontsrecommended`
-(for `lmodern`), and the Beamer collection (`texlive-beamer`):
+(for `lmodern`):
 ```bash
 pdflatex --version
+```
+
+For slides, `@slidev/cli` is required (installed via `npm install`):
+```bash
+npx slidev --version
 ```
 
 **Existing script structure (modular — one file per artifact family):**
@@ -165,7 +170,7 @@ generators/
   study-questions.js     # → [topic]_study_questions.md
   quiz.js                # → [topic]_quiz.tex/.pdf + [topic]_quiz_key.tex/.pdf
   readme.js              # → README.md
-  slides.js              # → [topic]_slides.tex + .pdf  (Beamer)
+  slides.js              # → [topic]_slides.md  (Slidev markdown)
   question-bank.js       # → [topic]_question_bank.md
   reading-list.js        # → [topic]_reading_list.md   (fenced scaffold; manual content preserved)
 archive/
@@ -240,8 +245,8 @@ inline-field reference live in `references/style-guide.md` § *Tag Taxonomy
 (canonical, v1.0)*.
 
 **Toolchain:**
-- `.tex` / `.pdf` (lecture notes, Cornell handout, quiz, slides) → LaTeX (`pdflatex`); slides via Beamer
-- `.md` (question bank, README, study questions, reading-list) → plain Markdown
+- `.tex` / `.pdf` (lecture notes, Cornell handout, quiz) → LaTeX (`pdflatex`)
+- `.md` (slides, question bank, README, study questions, reading-list) → Markdown; slides presented via `@slidev/cli` (`npx slidev [topic]_slides.md`)
 
 When updating existing materials, edit the `_lecture_main.md` first and preserve
 scope, numbering, and file naming unless the user asks for a restructure. For
@@ -250,14 +255,15 @@ append or merge intentionally.
 
 **Slide QA workflow:**
 
-Beamer compiles `<topic>_slides.tex` directly to `<topic>_slides.pdf` via
-`pdflatex` — no intermediate conversion is needed. View with any PDF viewer; for
-inline JPEG inspection (e.g. when running headless or sanity-checking layout):
+Slidev serves the deck as a live HTML presentation. Launch with:
 
 ```bash
-pdftoppm -jpeg -r 150 [topic]_slides.pdf slide
-# open slide-*.jpg in your image viewer, then report any layout issues back
+npx slidev [topic]_slides.md
+# opens http://localhost:3030 — navigate slides in a browser
 ```
+
+For headless layout inspection (CI or server environments), export a screenshot
+pass via Playwright if needed — but the primary review path is the live dev server.
 
 **PDF render path for hand-authored markdown companions (ad-hoc handouts that aren't generator output):**
 
@@ -304,7 +310,7 @@ cryptography_study_questions.md
 cryptography_quiz.pdf
 cryptography_quiz_key.pdf
 cryptography_question_bank.md
-cryptography_slides.pdf
+cryptography_slides.md
 cryptography_reading_list.md
 README.md
 
@@ -329,5 +335,5 @@ rules. In particular, check it for:
 - question-bank schema, numbering, dedupe, and tagging
 - reading-list companion frontmatter, callouts, cue-table format, and References discipline
 - GitHub README boilerplate and Markdown rules
-- Beamer slide palette, frametitle stripe, layout enum, and standard deck structure
+- Slidev theme palettes (blueprint / terminal), layout mapping, `<Schematic>` and `<EventChain>` components, and standard deck structure
 - ADA Title II compliance: `[alt::]` requirement on `#diagram` and diagram slide layouts; color-and-glyph pairing on Cornell sections; tagged-PDF preference
