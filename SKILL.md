@@ -4,15 +4,15 @@ description: >
   Generates lecture material sets for CS professors: lecture notes (.pdf),
   Cornell note-taking handouts (.pdf), study questions (.md), pop quizzes (.pdf),
   GitHub Classroom README assignments (.md), topic-wide question banks (.md),
-  assembled exams (.tex/.pdf), reading-list companions (.md), and Beamer slide
-  decks (.tex/.pdf). Use this skill whenever a user asks to generate, create,
-  assemble, revise, or extend any lecture materials, course handouts, slides,
-  quizzes, study questions, question banks, exams, or GitHub Classroom assignments
-  — even partial requests like "make me a Cornell handout for X", "add questions
-  to the README", "write a pop quiz on Y", "append to the question bank", or
-  "assemble exam 1 from these banks". Enforces strict style consistency, Cornell
-  ↔ slide alignment auditing, and tiered difficulty question design. Always use
-  this skill for any CS lecture content generation task.
+  reading-list companions (.md), and Beamer slide decks (.tex/.pdf). Use this
+  skill whenever a user asks to generate, create, assemble, revise, or extend any
+  lecture materials, course handouts, slides, quizzes, study questions, question
+  banks, or GitHub Classroom assignments — even partial requests like "make me a
+  Cornell handout for X", "add questions to the README", "write a pop quiz on Y",
+  or "append to the question bank". Enforces strict style consistency, Cornell ↔
+  slide alignment auditing, and tiered difficulty question design. Always use this
+  skill for any CS lecture content generation task. Exams are built by lectern's
+  reg-exam-build, not here.
 ---
 
 # Lecture Materials Assistant
@@ -65,14 +65,20 @@ These fields live in the YAML frontmatter and `#meta` section of the
 | Study questions | `[topic]_study_questions.md` | 10 tiered review questions that reinforce the lecture without recreating it (kept-form Markdown; no print form yet) |
 | Pop quiz | `[topic]_quiz.pdf` + `[topic]_quiz_key.pdf` (`.tex` retained) | 5-question in-class quiz with separate instructor answer-key PDF |
 | Question bank | `[topic]_question_bank.md` | ~50 tagged questions (mc/tf/code/fib/sa), scoped to full topic (2–4 sessions) |
-| Exam | `[course_num]-exam-[n]-[term].pdf` | Assembled from bank(s), compiled via pdflatex; `.tex` source retained; generator toggles `\answerstrue` and recompiles for the key |
 | Reading-list companion | `[topic]_reading_list.md` (single topic) or `[scope]_reading_list.md` (multi-topic, e.g. `final_third_reading_list.md`) | Hybrid scaffold paired 1:1 (or 1:N) with Cornell handout(s); the generator emits a `<!-- generator: cue-tables -->` … `<!-- /generator -->` fence with cue-to-source rows; manual content outside the fence is preserved on regen. Can also serve as a pre-exam review deliverable. |
 | GitHub README | `README.md` | GitHub Classroom assignment (reading or lab/programming variant) |
 | Slide deck | `[topic]_slides.tex` + `[topic]_slides.pdf` | 14–18 Beamer slides, CS Modern dark slate theme, indigo frametitle accent stripe |
 
-All printed-handout artifacts (lecture notes, Cornell handout, pop quiz, exam,
+All printed-handout artifacts (lecture notes, Cornell handout, pop quiz,
 slides) render to PDF via `pdflatex`. The `.docx` and `.pptx` formats are no
 longer emitted by any generator.
+
+> **Exams are controlled documents — built by lectern, not here.** Assemble an exam
+> `.tex` by hand from the topic's `*_question_bank.md` using lectern's
+> `references/reference_exam.tex` as the skeleton, then build per-student copies
+> with `reg-exam-build --roster <roster.csv> <exam>.tex` (injects per-student
+> serials, emits a register) and verify with `reg-exam-verify`. See
+> [[notes/exam-tex-doctrine]]. This skill no longer generates exams.
 
 **Default (generate everything — single session):**
 > "Generate lecture materials for [TOPIC] in [COURSE]. Cover: [KEY CONCEPTS]. Case studies: [EXAMPLES]. ~[N] minutes."
@@ -87,9 +93,6 @@ longer emitted by any generator.
 The question bank requires the full topic scope — all subtopics and sessions — before
 generating. If subtopics are not provided, ask for them before proceeding.
 
-**Exam (assembled from 2–3 topic banks):**
-> "Assemble an exam for [COURSE] [TERM], [EXAM NAME], [N] pts. Draw from: [bank1.md], [bank2.md], [bank3.md]. MC: [N] questions × [pts] pts. Essay: [N] questions × [pts] pts. Difficulty: ★ [N]%, ★★ [N]%, ★★★ [N]%. Randomize: yes/no."
-
 **Reading-list companion (single topic):**
 > "Build a reading-list companion for the [topic] Cornell handout. Map every cue to its source in [textbook ed.] and add supplementary primary sources where the textbook doesn't reach the cue."
 
@@ -100,19 +103,6 @@ The reading-list generator scaffolds the cue→source tables inside a fence; the
 surrounding prose, References list, and any hand-curated supplementary primary
 sources live outside the fence and survive regeneration. See
 `references/style-guide.md` § *Reading-List Companion* for the required structure.
-
-Exams typically span 2–3 lecture topics. If topics had unequal session counts,
-weight question selection proportionally.
-
-For two parallel sections needing different question sets, run assembly twice with
-`randomize: yes` — same bank, different shuffle. Provide the section identifier so
-file names are distinct (e.g. `326-exam-1-sp26-a.tex`, `326-exam-1-sp26-b.tex`).
-
-**Exam file naming convention:**
-- `[course_num]-exam-[n]-[term]` — e.g. `326-exam-1-sp26`
-- Term format: `sp` / `fa` / `su` + 2-digit year (e.g. `sp26`, `fa25`)
-- Parallel sections: append `-a`, `-b`, etc.
-- Answer key PDF: append `-key` (e.g. `326-exam-1-sp26-key.pdf`)
 
 ---
 
@@ -148,7 +138,7 @@ npm install
 ```
 
 A LaTeX toolchain with `pdflatex` is required for the lecture-notes, Cornell, quiz,
-exam, and slide PDFs. Required TeX packages: `texlive-needspace`, `texlive-ec`,
+and slide PDFs. Required TeX packages: `texlive-needspace`, `texlive-ec`,
 `texlive-tabulary`, `texlive-mdframed`, `texlive-collection-fontsrecommended`
 (for `lmodern`), and the Beamer collection (`texlive-beamer`):
 ```bash
@@ -178,7 +168,6 @@ generators/
   slides.js              # → [topic]_slides.tex + .pdf  (Beamer)
   question-bank.js       # → [topic]_question_bank.md
   reading-list.js        # → [topic]_reading_list.md   (fenced scaffold; manual content preserved)
-  exam.js                # → [course_num]-exam-[n]-[term].tex + .pdf
 archive/
   spec-driven-2025/      # historical: init-spec.js + lecture-spec.json (do not author new specs)
 ```
@@ -186,7 +175,6 @@ archive/
 **Execution model:**
 - Standard single-session lecture set: lecture notes, Cornell handout, study questions, quiz, README, slides, reading-list scaffold
 - Topic-wide bank generation: create or append to `[topic]_question_bank.md`
-- Exam assembly: separate sub-command driven by an exam-spec.json (which banks, weights, randomization)
 
 **Running (examples):**
 ```bash
@@ -201,17 +189,11 @@ node generate.js --main path/to/topic_lecture_main.md --artifact reading-list
 # Override output directory and skip pdflatex
 node generate.js --main path/to/topic_lecture_main.md --out ./out --no-pdf
 
-# Exam assembly (separate sub-command)
-node generate.js exam --spec ./exam-spec.json --out .
-
-# Reproducing a past semester's exam (strict — only items used in sp24)
+# Reproducing a past semester's deck (strict — only items used in sp24)
 node generate.js --main path/to/topic_lecture_main.md --strict-semester sp24
 
 # Building the current semester's deck (loose — keep current-tagged + untagged)
 node generate.js --main path/to/topic_lecture_main.md --semester sp26
-
-# Assemble an exam, then write #used/sp26 back to each picked item's source
-node generate.js exam --spec ./exam-spec.json --mark-used sp26
 
 # Staleness audit — list items whose newest #used/<term> is older than current
 node generate.js audit --main path/to/topic_lecture_main.md --current-term sp26
@@ -227,11 +209,7 @@ both `#used/sp24` and `#used/sp26`. Two filter modes use these tags:
   `#used/*` tag at all. Use this for a current-semester deck that mixes
   recently-tagged content with general-purpose unmarked content.
 - `--strict-semester sp26` (strict): keep ONLY items tagged `#used/sp26`. Use
-  this to reproduce a past semester's exam or handout exactly as it shipped.
-
-`node generate.js exam --mark-used sp26` runs after a successful exam build and
-appends `#used/sp26` to each picked item's source `_lecture_main.md`. The pass
-is idempotent — items already carrying the tag are skipped.
+  this to reproduce a past semester's handout exactly as it shipped.
 
 `node generate.js audit --main <path>` produces a staleness report grouped by
 section: items whose newest `#used/*` is older than `--current-term` (or the
@@ -262,7 +240,7 @@ inline-field reference live in `references/style-guide.md` § *Tag Taxonomy
 (canonical, v1.0)*.
 
 **Toolchain:**
-- `.tex` / `.pdf` (lecture notes, Cornell handout, quiz, exam, slides) → LaTeX (`pdflatex`); slides via Beamer
+- `.tex` / `.pdf` (lecture notes, Cornell handout, quiz, slides) → LaTeX (`pdflatex`); slides via Beamer
 - `.md` (question bank, README, study questions, reading-list) → plain Markdown
 
 When updating existing materials, edit the `_lecture_main.md` first and preserve
@@ -330,11 +308,6 @@ cryptography_slides.pdf
 cryptography_reading_list.md
 README.md
 
-# Exam (assembled from one or more banks):
-326-exam-1-sp26.tex
-326-exam-1-sp26.pdf
-326-exam-1-sp26-key.pdf
-
 # Reading-list companion (multi-topic — covers a unit or final third):
 final_third_reading_list.md
 ```
@@ -354,7 +327,6 @@ rules. In particular, check it for:
 - study-question tier counts and required question variety
 - quiz timing, answer-key format, and question constraints
 - question-bank schema, numbering, dedupe, and tagging
-- exam structure, LaTeX rules, randomization, and file naming
 - reading-list companion frontmatter, callouts, cue-table format, and References discipline
 - GitHub README boilerplate and Markdown rules
 - Beamer slide palette, frametitle stripe, layout enum, and standard deck structure

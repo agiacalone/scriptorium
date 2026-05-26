@@ -59,16 +59,15 @@ The `#used/<term>` tag has two interlocking purposes:
 
 1. **Reproduce a past semester exactly.** `node generate.js ... --strict-semester sp24`
    filters every role-based query to items tagged `#used/sp24`. Untagged items
-   are excluded — the deck/exam matches what shipped that semester.
+   are excluded — the deck/handout matches what shipped that semester.
 2. **Find stale content that needs revisiting.** `node generate.js audit
    --main <path>` lists items whose newest `#used/*` is older than the current
    term, plus items with no `#used/*` tag at all. Items 4+ semesters stale flag
    visibly so they bubble to the top during semester prep.
 
-The exam generator can append `#used/<term>` automatically via
-`node generate.js exam --spec <spec> --mark-used <term>` — runs after a
-successful build, idempotent on re-run, edits each picked item's source main
-in place at `item.sourceLine`.
+Mark items with `#used/<term>` manually after each semester, or append the tag
+in bulk via a text editor pass over the bank file. The `audit` sub-command
+surfaces items that have never been tagged so nothing is silently stale.
 
 A loose filter — `--semester sp26` — keeps `#used/sp26`-tagged items AND items
 with no `#used/*` tag at all (untagged = evergreen, always usable). Use loose
@@ -810,90 +809,12 @@ Target mix across each type: ~40% `★`, ~35% `★★`, ~25% `★★★`.
 
 ---
 
-## Exam (.pdf)
+## Exam — see lectern
 
-Assembled from one or more question bank `.md` files. The `.tex` source is
-generated first, then compiled to PDF. The PDF is the final deliverable.
-See `references/reference_exam.tex` for the full structural reference.
-
-### Scope
-
-A typical exam covers **2–3 lecture topics** (each topic spanning 2–4 sessions).
-Draw from one question bank per topic; weight question counts proportionally to
-the number of sessions each topic covers if they are unequal.
-
-### Exam Assembly Input
-
-Provide when requesting an exam:
-
-| Field | Example |
-|---|---|
-| Course + term | `CECS 326 — Spring 2026` |
-| Exam name + point total | `Exam One (50 pts)` |
-| Bank files to draw from | `processes_question_bank.md`, `threads_question_bank.md` |
-| MC section count + pts each | `20 questions × 2 pts` |
-| Essay section count + pts each | `2 questions × 5 pts` |
-| Difficulty distribution | `★: 40%, ★★: 35%, ★★★: 25%` |
-| Randomize | yes / no |
-
-If `randomize: yes`, shuffle questions within each difficulty tier before selecting.
-Two exam variants for parallel sections draw from the same bank with different shuffles.
-
-### Exam Structure (matching established format)
-
-**Header block:**
-```
-Name: _________________________________    Student ID#: ___________________
-[Course Code] – [Term]: [Exam Name] ([N] pts)
-Directions. [note-card policy + no-electronics rule]
-```
-
-**Section 1 — Multiple Choice ([pts] pts each)**
-
-Direction line: *Circle the best answer for each question. **Do not** write the
-answer in the space–it will be marked incorrect.*
-
-Questions drawn from `mc`, `tf`, and `code` types — mixed together, not separated.
-Continuous numbering starting at 1.
-
-**Section 2 — Short Essay and Code Interpretation ([pts] pts each)**
-
-Direction line: *In the space provided below, answer the following questions
-completely, but as briefly as possible. Partial credit will be given for
-incomplete answers.*
-
-Questions drawn from `sa` type. Continuous numbering continuing from MC via
-`\begin{enumerate}[resume]`. Each question followed by 14 `\bigskip` lines for
-handwritten answers (omitted when `\answerstrue`).
-
-### LaTeX Formatting Rules
-
-- **Packages:** `geometry` (letterpaper, 1in margins), `enumitem`, `listings`
-- **Answer key toggle:** `\newif\ifanswers` at top of file — `\answersfalse` for
-  student copy, `\answerstrue` for key. Answers and model responses wrapped in
-  `\ifanswers ... \fi` inline after each question stem.
-- **Compile:** `pdflatex [filename].tex` — run automatically after generating the `.tex`; the PDF is the final deliverable
-- **MC answer options:** `\begin{enumerate}[label=\alph*.]` nested inside each `\item`
-- **Essay continuation:** `\begin{enumerate}[resume]` to continue numbering from MC
-- **Code blocks:** `\begin{lstlisting}` with `basicstyle=\ttfamily\small`, single frame
-- **Name/ID rules:** `\rule{0.35\linewidth}{0.4pt}` (name) and `\rule{0.20\linewidth}{0.4pt}` (ID)
-- **Page breaks:** `\newpage` after roughly every 10 MC questions and between sections
-- **Section headers:** `\paragraph*{...}` (bold run-in heading, matches existing style)
-- **File naming:** `[course_num]-exam-[n]-[term]` where:
-  - `[course_num]` — numeric course number only, no prefix (e.g. `326`, `378`)
-  - `[n]` — exam number within the semester (`1`, `2`, `3`, …)
-  - `[term]` — semester abbreviation + 2-digit year: `sp` / `fa` / `su` + `YY` (e.g. `sp26`, `fa25`)
-  - Parallel sections append a letter suffix: `326-exam-1-sp26-a.tex`, `326-exam-1-sp26-b.tex`
-  - Answer key PDF: same base name with `-key` suffix: `326-exam-1-sp26-key.pdf`
-  - Examples: `326-exam-1-sp26.tex`, `378-exam-2-fa25.tex`, `326-exam-1-sp26-a.tex`
-
-### Design Rules
-
-- Point totals must add up exactly to the declared exam total
-- MC section question count and essay count must match the input spec
-- Difficulty distribution applied across the MC section as a whole, not per type
-- `code` questions must not appear back-to-back — interleave with `mc` and `tf`
-- No `fib` questions in exams
+Exams are controlled documents built by lectern's `reg-exam-build`, not by this
+skill. Question banks here are the source pool; assemble the exam `.tex` by hand
+from lectern's `references/reference_exam.tex` skeleton. Format rules live in
+[[notes/exam-tex-doctrine]].
 
 ---
 

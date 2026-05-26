@@ -7,7 +7,6 @@
 //
 // Usage:
 //   node generate.js --main <path> [--artifact <name>] [--out <dir>]
-//   node generate.js exam --spec <exam-spec.json> [--out <dir>]
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,7 +20,6 @@ import { generateSlides } from './generators/slides.js';
 import { generateStudyQuestions } from './generators/study-questions.js';
 import { generateQuiz } from './generators/quiz.js';
 import { generateReadingList } from './generators/reading-list.js';
-import { generateExam } from './generators/exam.js';
 import { generateReadme } from './generators/readme.js';
 import { generateAudit } from './generators/audit.js';
 
@@ -48,7 +46,6 @@ const ARTIFACT_ALIASES = {
 function usage() {
   return `Usage:
   node generate.js --main <path> [--artifact <name>] [--out <dir>]
-  node generate.js exam --spec <exam-spec.json> [--out <dir>]
 
 Artifacts (--artifact):
   all           default. runs every generator
@@ -74,9 +71,6 @@ Semester filtering (applied to all role-based item lookups):
   --strict-semester <term>  strict: keep ONLY items tagged #used/<term>
 
 Sub-commands:
-  exam --spec <path>        run the exam assembler against an exam-spec.json
-                            optional: --mark-used <term> writes #used/<term>
-                            back to each picked item's source main.md
   audit --main <path>       staleness audit; lists items whose newest #used/*
                             is older than --current-term (default = main's
                             frontmatter \`term:\`)
@@ -255,7 +249,7 @@ async function runMain(args) {
   let artifactInput = (args.flags.artifact || 'all').toLowerCase();
   artifactInput = ARTIFACT_ALIASES[artifactInput] || artifactInput;
   if (artifactInput === 'exam') {
-    process.stderr.write('error: use the `exam` sub-command instead — `node generate.js exam --spec <path>`\n');
+    process.stderr.write('error: exam generation has moved to lectern — build with `reg-exam-build`. See notes/exam-tex-doctrine.\n');
     process.exit(2);
   }
   if (!ARTIFACTS.has(artifactInput)) {
@@ -317,94 +311,6 @@ async function runMain(args) {
   log.info('Done.');
 }
 
-async function runExam(args) {
-  const log = makeLogger(args.flags.silent);
-  const specPath = args.flags.spec;
-  if (!specPath) {
-    process.stderr.write('error: exam requires --spec <exam-spec.json>\n\n' + usage());
-    process.exit(2);
-  }
-  if (!fs.existsSync(specPath)) {
-    process.stderr.write(`error: exam spec not found: ${specPath}\n`);
-    process.exit(2);
-  }
-
-  let spec;
-  try {
-    spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
-  } catch (err) {
-    process.stderr.write(`error: failed to parse exam spec JSON: ${err.message}\n`);
-    process.exit(2);
-  }
-
-  const mains = Array.isArray(spec.mains) ? spec.mains : [];
-  if (mains.length === 0) {
-    process.stderr.write('error: exam spec must include `mains: [...]` (at least one path)\n');
-    process.exit(2);
-  }
-
-  const outDir = args.flags.out || path.dirname(path.resolve(specPath));
-  fs.mkdirSync(outDir, { recursive: true });
-
-  log.info(`Parsing ${mains.length} main file(s) for exam…`);
-  const parsedDocs = [];
-  for (const m of mains) {
-    if (!fs.existsSync(m)) {
-      process.stderr.write(`error: main file not found: ${m}\n`);
-      process.exit(1);
-    }
-    let p;
-    try {
-      p = parse({ path: m });
-    } catch (err) {
-      process.stderr.write(`error: parse failed for ${m}: ${err.message}\n`);
-      process.exit(1);
-    }
-    const v = validate(p);
-    if (v && v.errors && v.errors.length > 0) {
-      process.stderr.write(`error: validation failed for ${m}:\n`);
-      for (const e of v.errors) {
-        const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
-        process.stderr.write(`  ✗ ${msg}\n`);
-      }
-      process.exit(1);
-    }
-    parsedDocs.push(p);
-  }
-
-  let result;
-  try {
-    result = generateExam(parsedDocs, spec, {
-      semester: args.flags.semester,
-      strictSemester: args.flags['strict-semester'],
-      markUsed: args.flags['mark-used'],
-    });
-  } catch (err) {
-    process.stderr.write(`error: exam assembly failed: ${err.message}\n`);
-    if (process.env.DEBUG) process.stderr.write(err.stack + '\n');
-    process.exit(1);
-  }
-
-  const fileBase = spec.fileBase || 'exam';
-  const examOut = path.join(outDir, `${fileBase}.tex`);
-  const keyOut = path.join(outDir, `${fileBase}_key.tex`);
-  writeText(examOut, result.examTex);
-  writeText(keyOut, result.keyTex);
-  log.info(`✓ exam → ${path.basename(examOut)} + ${path.basename(keyOut)} (${result.picked ? result.picked.length : 0} questions)`);
-  reportWarnings('exam', result.warnings, log);
-
-  const noPdf = !!args.flags.noPdf;
-  maybeCompile(examOut, outDir, log, noPdf);
-  maybeCompile(keyOut, outDir, log, noPdf);
-
-  if (result.markUsed) {
-    const markTerm = spec.markUsed || args.flags['mark-used'];
-    log.info(`✓ mark-used: tagged ${result.markUsed.modified} item(s) with #used/${markTerm} across ${result.markUsed.files.length} file(s); ${result.markUsed.alreadyTagged} already tagged.`);
-  }
-
-  log.info('Done.');
-}
-
 async function runAudit(args) {
   const log = makeLogger(args.flags.silent);
   const mainPath = args.flags.main || args.positional[1];
@@ -451,10 +357,13 @@ async function main() {
     process.exit(args.flags.help ? 0 : 2);
   }
 
-  // Sub-command: exam
+  // Sub-command: exam — retired; exams are controlled documents owned by lectern.
   if (args.positional[0] === 'exam') {
-    await runExam(args);
-    return;
+    process.stderr.write(
+      'error: exam generation has moved to lectern. Assemble a .tex by hand from the ' +
+      'question bank, then build per-student copies with `reg-exam-build --roster` ' +
+      '(serials) and check with `reg-exam-verify`. See notes/exam-tex-doctrine.\n');
+    process.exit(2);
   }
   // Sub-command: audit
   if (args.positional[0] === 'audit') {
