@@ -15,7 +15,7 @@
     "slides:build": "slidev build"
   },
   "dependencies": {
-    "@slidev/cli": "^0.49.0",
+    "@slidev/cli": "^52.16.0",
     "gray-matter": "^4.0.3",
     "markdown-it": "^14.1.0",
     "vue": "^3.4.0"
