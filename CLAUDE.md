@@ -92,8 +92,8 @@ lecture-materials-assistant/
 │   ├── main-parser.js             # markdown + tag + inline-field walker
 │   └── validators.js              # invariant checks; hard errors block generation
 ├── examples/
-│   ├── file_systems_abstraction_lecture_main.md  # canonical example (vault symlink)
-│   └── deadlock_study_questions.md
+│   ├── file_systems_abstraction_lecture_main.md  # canonical example (self-contained)
+│   └── README.md                                 # how to compile the sample
 ├── generators/                    # one file per artifact family (lecture-notes, cornell-handout, slides, quiz, study-questions, question-bank, exam, reading-list, readme)
 ├── lib/                           # shared LaTeX preamble + Cornell palette helpers
 ├── references/
@@ -171,9 +171,9 @@ source consistently.
 ## Current Note
 
 The end-to-end markdown-monolith workflow has been exercised against the canonical
-example at `examples/file_systems_abstraction_lecture_main.md` (symlinked from
-`<vault>/classes/326/`). 75 vitest tests pass against the parser, validators, and
-all generators.
+example at `examples/file_systems_abstraction_lecture_main.md` (a self-contained
+copy of a CECS 326 lecture source; see `examples/README.md` to compile it). 75
+vitest tests pass against the parser, validators, and all generators.
 
 The legacy spec-driven path (`init-spec.js` + `lecture-spec.json`) is archived at
 `archive/spec-driven-2025/`. Do not author new specs against it; existing course

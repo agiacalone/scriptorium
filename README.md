@@ -210,10 +210,10 @@ existing generator code in this repo and feed it a structured config file.
 ```
 generate.js              # CLI orchestrator for the standard lecture set
 examples/
-  lecture-spec.json      # sample lecture input
-lib/
-  docx-helpers.js
-  pptx-helpers.js
+  file_systems_abstraction_lecture_main.md   # self-contained sample source
+  README.md                                   # how to compile the sample
+parser/                  # tagged-Markdown → validated lecture model
+lib/                     # shared LaTeX preamble + Cornell palette helpers
 generators/
   lecture-notes.js
   cornell-handout.js
@@ -225,12 +225,14 @@ generators/
   exam.js
 ```
 
-Run the standard lecture set at once, or generate a single artifact:
+Run the standard lecture set at once, or generate a single artifact, against the
+bundled sample (see [`examples/README.md`](examples/README.md)):
 
 ```bash
-node generate.js --config examples/lecture-spec.json
-node generate.js --config examples/lecture-spec.json --artifact slides
-node generate.js --config examples/lecture-spec.json --artifact cornell
+npm install
+node generate.js --main examples/file_systems_abstraction_lecture_main.md --no-pdf --out ./out
+node generate.js --main examples/file_systems_abstraction_lecture_main.md --artifact slides --out ./out
+node generate.js --main examples/file_systems_abstraction_lecture_main.md --artifact cornell --out ./out
 ```
 
 ### Generating a question bank
@@ -241,7 +243,7 @@ Question banks are topic-wide and append-only. Claude should read the existing b
 first, avoid duplicates, and assign the next sequence number per question type.
 
 ```bash
-node generate.js --config examples/lecture-spec.json --artifact bank
+node generate.js --main examples/file_systems_abstraction_lecture_main.md --artifact bank --out ./out
 ```
 
 ### Assembling an exam
@@ -253,7 +255,7 @@ needed, writes `[course_num]-exam-[n]-[term].tex`, compiles the student PDF, the
 toggles `\answerstrue` and recompiles to produce the key PDF.
 
 ```bash
-node generate.js --config examples/lecture-spec.json --artifact exam
+node generate.js exam --spec ./your-exam-spec.json --out ./out
 ```
 
 ## References
