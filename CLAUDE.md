@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-**lecture-materials-assistant** is a document-generation system for production-ready
+**Scriptorium** is a document-generation system for production-ready
 CS lecture materials. The checked-in Node.js code is the stable generator. The skill
 is the interface layer that turns a user request into a structured `_lecture_main.md`
 markdown source and then runs that generator. It should not regenerate JavaScript
@@ -72,7 +72,7 @@ PDFs (handouts, slides, quiz, exam) for hand-out and projector.
 Users invoke the skill from a course project directory that has a `CLAUDE.md` referencing this skill:
 
 ```markdown
-- Use the lecture materials assistant skill at ~/.claude/skills/lecture-materials-assistant/SKILL.md
+- Use the Scriptorium skill at ~/.claude/skills/scriptorium/SKILL.md
 ```
 
 When deployed as a skill, the entry point is `SKILL.md`. When invoked, Claude must
@@ -83,7 +83,7 @@ outputs from that source.
 ## Architecture
 
 ```
-lecture-materials-assistant/
+scriptorium/
 ├── SKILL.md                       # Skill metadata, workflow, artifact specs, file naming
 ├── CLAUDE.md.example              # Template users copy to their course project directory
 ├── generate.js                    # Stable CLI orchestrator: parse → validate → dispatch → compile

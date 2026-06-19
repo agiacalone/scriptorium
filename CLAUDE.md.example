@@ -2,12 +2,10 @@
 
 ## Skills
 
-- Use the lecture materials assistant skill at `~/.claude/skills/lecture-materials-assistant/SKILL.md`
+- Use the Scriptorium skill at `~/.claude/skills/scriptorium/SKILL.md`
   for all lecture content generation requests.
-- Use the checked-in CLI from `~/.claude/skills/lecture-materials-assistant/generate.js`
+- Use the checked-in CLI from `~/.claude/skills/scriptorium/generate.js`
   instead of regenerating JavaScript files in the course repo.
-- Use `~/.claude/skills/lecture-materials-assistant/init-spec.js` to scaffold a
-  lecture spec JSON from a topic request before generating artifacts.
 
 ## Course Context
 

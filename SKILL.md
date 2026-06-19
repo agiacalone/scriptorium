@@ -1,5 +1,5 @@
 ---
-name: lecture-materials-assistant
+name: scriptorium
 description: >
   Generates lecture material sets for CS professors: lecture notes (.pdf),
   Cornell note-taking handouts (.pdf), study questions (.md), pop quizzes (.pdf),
@@ -15,7 +15,7 @@ description: >
   reg-exam-build, not here.
 ---
 
-# Lecture Materials Assistant
+# Scriptorium
 
 Generates styled, production-ready lecture materials for CS courses. Student-facing
 lecture materials are intentionally partial: they replace distributing slides, but
