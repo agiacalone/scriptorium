@@ -1,4 +1,8 @@
-# lecture-materials-assistant
+# Scriptorium
+
+> *Trivia:* A **scriptorium** (Latin, "a place for writing") was the room in a medieval monastery
+> where scribes copied and illuminated manuscripts by hand — exactly where your course materials
+> are made.
 
 A [Claude Code](https://claude.ai/code) skill **and** a standalone Node.js generator
 toolchain that turns **one tagged-Markdown lecture source** into a full set of
@@ -10,10 +14,25 @@ Everything is **100% open formats, end to end**: Markdown in; Markdown, LaTeX→
 and [Slidev](https://sli.dev) decks out. No proprietary or binary "source" formats
 anywhere in the pipeline.
 
-> **Companion project:** [lectern](https://github.com/agiacalone/lectern) is the
-> course-*operations* counterpart (term lifecycle, gradebook, exam build/verify with
-> per-student serials, GitHub-Actions autograding). This repo produces *content*;
-> lectern runs the *course*.
+## Part of a self-hosted LMS — Lectern · Scriptorium · Oracle
+
+**Lectern · Scriptorium · Oracle** together form a **self-hosted, open-format learning-management
+system (LMS)** for university CS courses — faculty-owned, no vendor lock-in, spanning the full course
+lifecycle: **administration** (Lectern) · **content** (Scriptorium) · **grading** (Oracle). It covers
+what a commercial LMS does, but in plain version-controllable formats you own end to end.
+
+**Modular by design:** adopt one tool or all three. Each stands alone, owns one stage of the course
+lifecycle, and interoperates through open plain-text formats (Markdown · CSV · YAML · LaTeX) and
+stable CLI contracts — no shared database, no monolith, no lock-in. Each tool is also operable two
+ways: driven by an AI agent (Claude Code skill) *or* run directly by a human via its CLI.
+
+| Tool | Role | Repo |
+|---|---|---|
+| **[Lectern](https://github.com/agiacalone/lectern)** — the Registrar | Course **administration** — terms, sections, gradebook, exam build/verify, Classroom binding, archival. | `agiacalone/lectern` |
+| **[Scriptorium](https://github.com/agiacalone/scriptorium)** — the workshop | Course **content** — lecture notes, Cornell handouts, quizzes, slides, question banks. | `agiacalone/scriptorium` |
+| **[Oracle](https://github.com/agiacalone/oracle)** — the secret box | **Grading** — a verify-by-proof oracle service + a sandboxed code-runner (gradebox). | `agiacalone/oracle` |
+
+*You are here: **Scriptorium**.*
 
 ---
 
@@ -70,8 +89,8 @@ a LaTeX toolchain installed. The slide deck is Slidev Markdown — preview it li
 ## Quick start
 
 ```bash
-git clone https://github.com/agiacalone/lecture-materials-assistant.git
-cd lecture-materials-assistant
+git clone https://github.com/agiacalone/scriptorium.git
+cd scriptorium
 npm install
 
 # Compile the full set from the bundled sample, skipping PDF compilation:
@@ -140,20 +159,20 @@ checked-in JavaScript is the stable engine; the skill is the interface.
 
 ```bash
 mkdir -p ~/.claude/skills
-git clone https://github.com/agiacalone/lecture-materials-assistant.git \
-  ~/.claude/skills/lecture-materials-assistant
+git clone https://github.com/agiacalone/scriptorium.git \
+  ~/.claude/skills/scriptorium
 ```
 
 In your course repo, copy the context template and reference the skill:
 
 ```bash
-cp ~/.claude/skills/lecture-materials-assistant/CLAUDE.md.example ./CLAUDE.md
+cp ~/.claude/skills/scriptorium/CLAUDE.md.example ./CLAUDE.md
 ```
 
 ```markdown
 ## Skills
-- Use the lecture-materials-assistant skill at
-  ~/.claude/skills/lecture-materials-assistant/SKILL.md for all lecture content.
+- Use the Scriptorium skill at
+  ~/.claude/skills/scriptorium/SKILL.md for all lecture content.
 ```
 
 Then just ask:
@@ -260,7 +279,7 @@ npm run verify:a11y  # ADA Title II / WCAG contrast audit of the palettes (--lev
 
 Student-facing materials are built toward WCAG 2.1 AA per the
 [md-monolith design spec](docs/specs/2026-05-07-md-monolith-revamp-design.md#accessibility--ada-title-ii-compliance-non-functional-requirement).
-The first stage of the compliance [audit chain](https://github.com/agiacalone/lecture-materials-assistant/issues/5)
+The first stage of the compliance [audit chain](https://github.com/agiacalone/scriptorium/issues/5)
 is live: a **palette contrast verifier** (`lib/a11y/`) checks every student/instructor
 color pair against the WCAG target. `generate.js` **gates** on it before emitting any
 artifact — run `npm run verify:a11y` standalone, or pass `--skip-a11y` / `--a11y-level AAA`
