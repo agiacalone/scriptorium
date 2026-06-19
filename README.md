@@ -28,7 +28,7 @@ ways: driven by an AI agent (Claude Code skill) *or* run directly by a human via
 |---|---|---|
 | **[Lectern](https://github.com/agiacalone/lectern)** — the Registrar | Course **administration** — terms, sections, gradebook, exam build/verify, Classroom binding, archival. | `agiacalone/lectern` |
 | **[Scriptorium](https://github.com/agiacalone/scriptorium)** — the workshop | Course **content** — lecture notes, Cornell handouts, quizzes, slides, question banks. | `agiacalone/scriptorium` |
-| **[Oracle](https://github.com/agiacalone/oracle)** — the secret box | **Grading** — a verify-by-proof oracle service + a sandboxed code-runner (gradebox). | `agiacalone/oracle` |
+| **[Oracle](https://github.com/agiacalone/oracle)** *(private)* — the secret box | **Grading** — a verify-by-proof oracle service + a sandboxed code-runner (gradebox). | `agiacalone/oracle` *(private — licensed)* |
 
 *You are here: **Scriptorium**.*
 
