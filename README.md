@@ -1,8 +1,6 @@
 # Scriptorium
 
-> *Trivia:* A **scriptorium** (Latin, "a place for writing") was the room in a medieval monastery
-> where scribes copied and illuminated manuscripts by hand — exactly where your course materials
-> are made.
+> In a medieval **scriptorium** — Latin, "a place for writing" — scribes copied and illuminated manuscripts by candlelight, one careful page at a time. We borrowed the name, and a little of the reverence: this is where a course's materials are made, every artifact projected from one plain-Markdown source you own outright. The candles are gone; the craft, and the open formats, stayed.
 
 A [Claude Code](https://claude.ai/code) skill **and** a standalone Node.js generator
 toolchain that turns **one tagged-Markdown lecture source** into a full set of
