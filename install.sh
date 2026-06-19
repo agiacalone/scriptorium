@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — Deploy lecture-materials-assistant as a Claude Code skill
+# install.sh — Deploy Scriptorium as a Claude Code skill
 #
 # Usage:
 #   ./install.sh              # install from this repo (local source)
@@ -8,9 +8,9 @@
 
 set -euo pipefail
 
-SKILL_NAME="lecture-materials-assistant"
+SKILL_NAME="scriptorium"
 SKILL_DIR="${HOME}/.claude/skills/${SKILL_NAME}"
-REPO_URL="git@github.com:agiacalone/lecture-materials-assistant.git"
+REPO_URL="git@github.com:agiacalone/scriptorium.git"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -108,12 +108,10 @@ echo
 echo "  To use this skill in a course repo, add the following to that repo's CLAUDE.md:"
 echo
 echo "    ## Skills"
-echo "    - Use the lecture materials assistant skill at \`~/.claude/skills/${SKILL_NAME}/SKILL.md\`"
+echo "    - Use the Scriptorium skill at \`~/.claude/skills/${SKILL_NAME}/SKILL.md\`"
 echo "      for all lecture content generation requests."
 echo "    - Use the checked-in CLI from \`~/.claude/skills/${SKILL_NAME}/generate.js\`"
 echo "      instead of regenerating JavaScript files in the course repo."
-echo "    - Use \`~/.claude/skills/${SKILL_NAME}/init-spec.js\` to scaffold a"
-echo "      lecture spec JSON from a topic request before generating artifacts."
 echo
 echo "  Or copy CLAUDE.md.example from the skill directory as a starting point:"
 echo "    cp ${SKILL_DIR}/CLAUDE.md.example ./CLAUDE.md"
