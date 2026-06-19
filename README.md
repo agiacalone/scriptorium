@@ -32,6 +32,8 @@ ways: driven by an AI agent (Claude Code skill) *or* run directly by a human via
 
 *You are here: **Scriptorium**.*
 
+> **Suite licensing.** Lectern and Scriptorium are open source ([MIT](LICENSE)). **Oracle** — the grading engine — is **licensed, not open**: a **source-available license** (PolyForm Strict 1.0.0), private repo, source provided on licensing. Accredited **educational institutions can license it for free**; commercial and other use is by arrangement. Either way, **contact the author for a license** — [@agiacalone](https://github.com/agiacalone).
+
 ---
 
 ## The idea in one minute
