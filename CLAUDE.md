@@ -33,7 +33,7 @@ priors, but the formats split into two tiers:
     and survives regeneration.
 - **Disposable (regenerated fresh from `_lecture_main.md`):**
   - `<topic>_lecture_notes.pdf` (instructor)
-  - `<topic>_cornell_handout.pdf` (student)
+  - `<topic>_cornell_handout.pdf` (student) + `<topic>_cornell_handout_key.pdf` (instructor answer key — never distribute)
   - `<topic>_study_questions.md` (student review)
   - `<topic>_quiz.pdf` + `<topic>_quiz_key.pdf`
   - `<topic>_slides.md` (Slidev) — render/export with the `slides:dev` / `slides:build` scripts
@@ -95,7 +95,7 @@ scriptorium/
 │   ├── file_systems_abstraction_lecture_main.md  # canonical example (self-contained)
 │   └── README.md                                 # how to compile the sample
 ├── exam-reading-list-cli.js       # sub-tool CLI: multi-topic per-exam reading list (driven by lectern reg-exam-readinglist)
-├── generators/                    # one file per artifact family (lecture-notes, cornell-handout, slides, quiz, study-questions, question-bank, reading-list, exam-reading-list, readme, audit)
+├── generators/                    # one file per artifact family (lecture-notes, cornell-handout, slides, quiz, study-questions, question-bank, reading-list, exam-reading-list, readme, audit); plus non-artifact helpers _filter.js (semester filter) and mark-used.js (#used/<term> writeback)
 ├── lib/                           # shared LaTeX preamble + Cornell palette helpers
 │   └── a11y/                       # ADA Title II / WCAG audit chain (issue #5): contrast verifier; `generate.js` gates on it
 ├── references/
@@ -120,6 +120,7 @@ scriptorium/
 - `node generate.js --main <path> --artifact bank` (alias: `question-bank`)
 - `node generate.js --main <path> --artifact reading-list`
 - `node generate.js --main <path> --out ./out --no-pdf` — override output dir, skip pdflatex
+- `node generate.js --main <path> --mark-used <term>` — after a clean build, stamp `#used/<term>` onto every deck item the build used, written back to the source main (idempotent; respects `--semester`/`--strict-semester`). Implemented in `generators/mark-used.js`; the documented `#used/<term>` reproducibility workflow depends on it.
 - `node exam-reading-list-cli.js --exam-name "Midterm 1" --slug midterm_1 --course "CECS 326" --term sp26 --mains a.md,b.md --out ./out` — **exam reading-list** sub-tool: consolidates several topic `_lecture_main.md` files into one per-exam cue→source study guide (`<slug>_reading_list.md`). Driven by lectern's `reg-exam-readinglist`. Accepts `--textbook`, `--citation-key`, `--note`, `--note-title` overrides.
 
 **Exam generation has moved out of this repo.** Exams are controlled documents owned
@@ -135,7 +136,7 @@ assembly draws from, and the per-exam *reading-list* study guide.
 |------|--------|-----------------|
 | `[topic]_lecture_main.md` | Source of truth | YAML frontmatter + Obsidian tags + Dataview-style inline fields. Lives at `<vault>/classes/<course>/`. Read by the parser; every artifact is a projection. |
 | `[topic]_lecture_notes.pdf` | Lecture notes | LaTeX, Computer Modern, navy/teal/amber/indigo callouts; `.tex` source retained |
-| `[topic]_cornell_handout.pdf` | Student handout | 2-col Cornell layout, ~40% slide-content coverage, section-kind colors (motivation=teal / concept=navy / synthesis=amber / strategy=indigo / application=green / case-study=purple / pitfall=rose) anchor each section's banner, cue-tint, and KEY callout; `.tex` retained |
+| `[topic]_cornell_handout.pdf` (+ `_key.pdf`) | Student handout + instructor key | 2-col Cornell layout, ~40% slide-content coverage, section-kind colors (motivation=teal / concept=navy / synthesis=amber / strategy=indigo / application=green / case-study=purple / pitfall=rose) anchor each section's banner, cue-tint, and KEY callout; `.tex` retained. A second `_cornell_handout_key.pdf` reveals every answer in rose bold under an INSTRUCTOR-ONLY banner (same `.tex`, `\ifanswers` toggle) — never distributed |
 | `[topic]_study_questions.md` | Study questions | 10 questions: 2 Recall, 3 Apply, 5 Analyze; Markdown only — no print form generated |
 | `[topic]_quiz.pdf` + `[topic]_quiz_key.pdf` | Pop quiz | 5 questions (~10 min), MC+short answer, separate key PDF; `.tex` retained |
 | `[topic]_question_bank.md` | Question bank | ~50 tagged questions (mc/tf/code/fib/sa · ★/★★/★★★ · subtopic); source of truth for exam assembly (in lectern) |
@@ -207,7 +208,7 @@ pdftoppm -jpeg -r 150 [topic]_slides.pdf slide
 
 ## Critical Style Rules (enforced by style-guide.md and parser/validators.js)
 
-- **Cornell handout**: Pre-distributed via Canvas before class. Students fill blanks from projected slides during lecture — every `#blank` must carry `[slide:: N]` (parser hard-error if missing). Verbal explanation is never a blank source. Keep student-facing coverage to roughly 40% of the slide content. Key diagrams from slides must appear in the handout as partial structures, paired with `[alt::]`.
+- **Cornell handout**: Pre-distributed via Canvas before class. Students fill blanks from projected slides during lecture — every `#blank` must carry `[slide:: N]` (parser hard-error if missing). Verbal explanation is never a blank source. Keep student-facing coverage to roughly 40% of the slide content. Key diagrams from slides must appear in the handout as partial structures, paired with `[alt::]`. The generator emits a paired **instructor answer key** (`_cornell_handout_key.pdf`) from the same `.tex` via the `\ifanswers` toggle — answers from each `#blank`'s `[answer:: …]` and `#vocab` definitions reveal in rose bold under an INSTRUCTOR-ONLY banner. Treat the key like the quiz key: never distribute to students.
 - **Printed PDF materials**: Use color as a functional lecture cue. Handouts and instructor notes should preserve colored headers, cue regions, dividers, and callout fills so the printed pages are easy to scan during a live lecture. Color is paired with a glyph for ADA contrast independence.
 - **Slides**: Beamer deck. Theme colors are slate `#0F172A`, indigo `#6366F1`, amber `#F59E0B`. Each frame uses a frametitle accent stripe (indigo) and section badge. Slide `[layout::]` must come from the 11-layout enum (validated).
 - **Study questions**: Open-ended and case-study reference questions are always required. Attacker-mindset question required only when `adversarial-thinking: yes` (Security courses). Defaults to `no`.

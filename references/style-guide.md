@@ -325,6 +325,26 @@ time: students should be able to identify cue areas, note-taking space, section
 breaks, and summary boxes immediately during lecture, and the instructor should be
 able to spot those same regions instantly while presenting.
 
+### Two outputs: student handout + instructor answer key
+
+The Cornell generator emits **two** PDFs from one source, mirroring the quiz
+generator's student/key pair:
+
+- `[topic]_cornell_handout.pdf` — the student copy (blank fill-in cells).
+- `[topic]_cornell_handout_key.pdf` — the in-class **answer key**, for instructor
+  use only. It carries a rose `*** ANSWER KEY — INSTRUCTOR USE ONLY ***` banner
+  at the top and reveals every answer in **rose bold** (`studRose BE185D`): each
+  `#blank`'s `[answer:: …]` values are substituted into the `_______` runs in
+  order (semicolon-delimited, one answer per run), and `#vocab` definitions are
+  filled into their yellow cells.
+
+Both PDFs are projections of the same `.tex`: the preamble declares
+`\newif\ifanswers\answersfalse`, every revealable cell wraps its answer in
+`\ifanswers … \else <blank> \fi`, and `generate.js` writes the student file as-is
+and a second `_key.tex` with the single `\answersfalse` directive flipped to
+`\answerstrue`. The answer key is **never** distributed to students — it is a
+controlled instructor artifact (treat like the quiz key).
+
 ### Layout
 
 Rendered with LaTeX (`pdflatex`) via `lib/cornell-tex.js`. Per-section content uses

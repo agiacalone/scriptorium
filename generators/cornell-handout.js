@@ -42,6 +42,7 @@ const {
   cornellPreamble,
   cornellTitleBlock,
   cornellInstructionLine,
+  cornellKeyBanner,
   cornellObjectivesBox,
   cornellVocabGrid,
   cornellSectionBanner,
@@ -120,19 +121,40 @@ function deriveCue(item) {
   return words.length > 30 ? words.slice(0, 28) + '…' : words;
 }
 
-// Vocab term → "term" label for the Vocabulary grid.
-function vocabTerm(item) {
-  const t = item.text || '';
-  // Common shape: "**term** — definition" or "term — definition".
-  const m = /^\*\*([^*]+)\*\*/.exec(t) || /^([^—–-]+?)\s*[—–-]/.exec(t);
-  if (m) return m[1].trim();
-  return t.split(/\s+/).slice(0, 3).join(' ');
+// Strip markdown bold/inline-code markers — LaTeX rendering uses plain text.
+function stripMarkdown(s) {
+  return String(s || '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(?<!\\)`([^`]+)`/g, '$1');
+}
+
+// Vocab entry → { term, definition }. Shape: "**term** — definition" (or
+// "term — definition"). The definition is revealed in the answer-key build and
+// stays a blank cell in the student handout. Returns definition:null when the
+// item carries no "— definition" tail (key cell then stays blank too).
+function vocabEntry(item) {
+  const t = (item.text || '').trim();
+  const m = /^\*\*([^*]+)\*\*\s*[—–-]\s*([\s\S]+)$/.exec(t) ||
+            /^([^—–-]+?)\s*[—–-]\s*([\s\S]+)$/.exec(t);
+  if (m) return { term: m[1].trim(), definition: stripMarkdown(m[2]).trim() };
+  return { term: t.split(/\s+/).slice(0, 3).join(' '), definition: null };
 }
 
 // Strip trailing punctuation, return prose suitable for the notes column.
 // Markdown bold/italic markers are removed (LaTeX rendering uses plain text).
 function blankProse(item) {
-  return (item.text || '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/(?<!\\)`([^`]+)`/g, '$1');
+  return stripMarkdown(item.text);
+}
+
+// Ordered answer list for a #blank, parsed from its `[answer:: a; b; c]` field.
+// One entry per `_______` run, in document order. Returns undefined when the
+// blank has no [answer::] (the fill cell then degrades to blank space even in
+// the key).
+function blankAnswers(item) {
+  const raw = item.fields && item.fields.get && item.fields.get('answer');
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  const list = String(raw).split(';').map((s) => s.trim()).filter(Boolean);
+  return list.length > 0 ? list : undefined;
 }
 
 export function generateCornellHandout(parsed, options = {}) {
@@ -146,6 +168,7 @@ export function generateCornellHandout(parsed, options = {}) {
   out.push(cornellPreamble(headerLeft, headerRight));
   out.push('\\begin{document}');
   out.push('\\thispagestyle{fancy}');
+  out.push(cornellKeyBanner());
   out.push(cornellTitleBlock(title, courseLabel));
   out.push(
     cornellInstructionLine(
@@ -157,8 +180,8 @@ export function generateCornellHandout(parsed, options = {}) {
   const objectives = itemsForRole(parsed, 'objective', options).map((it) => it.text);
   if (objectives.length > 0) out.push(cornellObjectivesBox(objectives));
 
-  // Vocabulary
-  const vocab = itemsForRole(parsed, 'vocab', options).map(vocabTerm);
+  // Vocabulary — {term, definition}; definitions surface in the key build.
+  const vocab = itemsForRole(parsed, 'vocab', options).map(vocabEntry);
   if (vocab.length > 0) out.push(cornellVocabGrid(vocab));
 
   // Section meta (titles + minutes from H2 lines)
@@ -178,6 +201,7 @@ export function generateCornellHandout(parsed, options = {}) {
       cue: deriveCue(b),
       notes: blankProse(b),
       fillIn: true,
+      answers: blankAnswers(b),
     }));
 
     // Case-studies: include only if section is light on blanks (<6) — avoids
@@ -246,7 +270,15 @@ export function generateCornellHandout(parsed, options = {}) {
     /(\d+\.\\enspace\\rule\[-2pt\]\{0\.95\\linewidth\}\{0\.4pt\})/g,
     '$1\\iffalse _______ \\fi'
   );
-  return result;
+
+  // Two projections of the same source: the student handout ships as-is
+  // (\answersfalse default), and the in-class answer key flips the single
+  // \answersfalse directive to \answerstrue so every \ifanswers branch reveals.
+  // Global regex (per the original design) so a stray mention can't shadow the
+  // real directive. generate.js writes both and compiles each to PDF.
+  const handoutTex = result;
+  const keyTex = result.replace(/\\answersfalse/g, '\\answerstrue');
+  return { handoutTex, keyTex };
 }
 
 export default generateCornellHandout;
