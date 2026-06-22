@@ -8,7 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-_Nothing queued yet._
+### Added
+- **Extended the `examples/` demo beyond the single lecture.** Two more self-contained sample sources — `processes_and_threads_lecture_main.md` (a second CECS 326 topic, tagged `#used/sp26`) and `secure_protocols_478_lecture_main.md` (a CECS 478 topic) — plus `examples/README.md` sections demonstrating four previously-undemonstrated capabilities: the multi-topic `exam-reading-list-cli.js`, course-driven theme selection (blueprint for 326/378 vs **terminal** for 478), the staleness `audit` sub-command, and the `--readme-variant lab` GitHub Classroom variant.
 
 ---
 

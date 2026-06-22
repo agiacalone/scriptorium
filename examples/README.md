@@ -51,6 +51,65 @@ the pop quiz + key.
 
 ---
 
+## Beyond the single lecture
+
+Two more sample sources demonstrate capabilities that one lecture can't show:
+
+- `processes_and_threads_lecture_main.md` — a second CECS 326 topic (carries
+  `#used/sp26` tags so the staleness audit has something to surface).
+- `secure_protocols_478_lecture_main.md` — a **CECS 478** topic (course code drives
+  automatic theme selection).
+
+### Multi-topic exam reading list (`exam-reading-list-cli.js`)
+
+Consolidate the topics one exam covers into a single cue→source study guide:
+
+```bash
+node exam-reading-list-cli.js --exam-name "Midterm 1" --slug midterm_1 \
+  --course "CECS 326" --term su26 --out examples/midterm_1 \
+  --mains examples/file_systems_abstraction_lecture_main.md,examples/processes_and_threads_lecture_main.md
+# → examples/midterm_1/midterm_1_reading_list.md  (both topics, one guide)
+```
+
+This is the sub-tool lectern's `reg-exam-readinglist` drives.
+
+### Course-driven theme (blueprint vs terminal)
+
+The slide theme is auto-selected by course code: **blueprint** (navy/cyan) for
+CECS 326/378, **terminal** (phosphor-green) for CECS 478.
+
+```bash
+node generate.js --main examples/secure_protocols_478_lecture_main.md \
+  --artifact slides --no-pdf
+# → secure_protocols_478_slides.md   [theme: terminal]
+```
+
+### Staleness audit
+
+List items whose newest `#used/<term>` tag predates the current term (plus items
+never marked used) — a reuse check before the next offering:
+
+```bash
+node generate.js audit --main examples/processes_and_threads_lecture_main.md \
+  --current-term su26
+# → processes_and_threads_staleness_audit.md  (stale + never-used items)
+```
+
+`--semester <term>` / `--strict-semester <term>` reproduce a past offering by
+filtering role-based item lookups during generation.
+
+### Lab vs reading README variant
+
+The GitHub Classroom README has two variants — `reading` (default) and `lab`:
+
+```bash
+node generate.js --main examples/file_systems_abstraction_lecture_main.md \
+  --artifact readme --readme-variant lab --no-pdf --out examples/lab-readme-variant
+# → examples/lab-readme-variant/README.md  ("… — Lab Assignment")
+```
+
+---
+
 **100% open formats** — tagged Markdown in, Markdown / Beamer-LaTeX / Slidev out.
 No proprietary or binary "kept" formats anywhere in the pipeline. Pairs with the
 course-operations toolchain at **github.com/agiacalone/lectern** (exam assembly,
