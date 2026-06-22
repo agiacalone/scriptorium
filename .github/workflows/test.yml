@@ -17,6 +17,10 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
+      # `npm install`, not `npm ci`: the committed lock is authored by npm 11
+      # (local), while node 22 here ships npm 10, which rejects the lockfile-v3
+      # tree. install is lenient to that skew. Tighten to `npm ci` once the lock
+      # + npm versions are pinned at RC time.
+      - run: npm install --no-audit --no-fund --no-progress
       - run: npm run check
       - run: npm test
