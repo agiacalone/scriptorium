@@ -202,6 +202,10 @@ node generate.js --main path/to/topic_lecture_main.md --semester sp26
 
 # Staleness audit — list items whose newest #used/<term> is older than current
 node generate.js audit --main path/to/topic_lecture_main.md --current-term sp26
+
+# Build a deck AND record that its items were used this term (writes #used/fa26
+# back into the source main; idempotent; combine with --semester to scope)
+node generate.js --main path/to/topic_lecture_main.md --mark-used fa26
 ```
 
 ### Reproducibility & staleness — the `#used/<term>` workflow
@@ -215,6 +219,15 @@ both `#used/sp24` and `#used/sp26`. Two filter modes use these tags:
   recently-tagged content with general-purpose unmarked content.
 - `--strict-semester sp26` (strict): keep ONLY items tagged `#used/sp26`. Use
   this to reproduce a past semester's handout exactly as it shipped.
+
+To *record* usage rather than filter by it, add `--mark-used <term>` to a build:
+after a clean run it appends `#used/<term>` to every deck item the build used
+(each tagged content bullet that survives the active filter), writing back to the
+source `_lecture_main.md`. Idempotent — already-tagged items are counted and left
+alone; drafts and untagged prose are never marked. Scope it with `--semester` /
+`--strict-semester` (e.g. `--strict-semester sp26 --mark-used sp26` re-stamps only
+the items that shipped in sp26). This is how the `#used/<term>` set accumulates
+over a lecture's life, which the loose/strict filters above then read back.
 
 `node generate.js audit --main <path>` produces a staleness report grouped by
 section: items whose newest `#used/*` is older than `--current-term` (or the

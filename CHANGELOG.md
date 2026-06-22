@@ -20,6 +20,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   ONLY ***` banner, and `substituteAnswers` (rose-bold reveal, one answer per `_______` run from
   the `#blank` `[answer:: …]` field; `#vocab` definitions revealed in the key). `generate.js`
   writes and compiles both PDFs. Regression coverage added in `generators/cornell-handout.test.js`.
+- **Restored and generalized `--mark-used <term>`.** The flag was parsed by `generate.js` but did
+  nothing — its implementation lived in the exam generator's `markUsedTag()` and was removed with the
+  exam path in `c087cab` ("retire exam generator"), leaving the flag wired to nothing. Reimplemented as
+  `generators/mark-used.js` (`markUsedTags`), generalized from "mark the questions an exam picked" to
+  "mark every deck item this build used": after a clean build, every tagged content bullet that survives
+  the active semester filter gets `#used/<term>` appended in the source `_lecture_main.md` (idempotent;
+  drafts and untagged prose skipped; respects `--semester`/`--strict-semester`). `generate.js` reports
+  `tagged N item(s) … M already tagged`. Makes the documented `#used/<term>` reproducibility workflow
+  actually executable. Covered by `generators/mark-used.test.js`.
 
 ### Added
 - **Extended the `examples/` demo beyond the single lecture.** Two more self-contained sample sources — `processes_and_threads_lecture_main.md` (a second CECS 326 topic, tagged `#used/sp26`) and `secure_protocols_478_lecture_main.md` (a CECS 478 topic) — plus `examples/README.md` sections demonstrating four previously-undemonstrated capabilities: the multi-topic `exam-reading-list-cli.js`, course-driven theme selection (blueprint for 326/378 vs **terminal** for 478), the staleness `audit` sub-command, and the `--readme-variant lab` GitHub Classroom variant.

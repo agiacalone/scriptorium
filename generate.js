@@ -22,6 +22,7 @@ import { generateQuiz } from './generators/quiz.js';
 import { generateReadingList } from './generators/reading-list.js';
 import { generateReadme } from './generators/readme.js';
 import { generateAudit } from './generators/audit.js';
+import { markUsedTags } from './generators/mark-used.js';
 
 const require = createRequire(import.meta.url);
 const { compileLatex } = require('./lib/tex-helpers.js');
@@ -74,6 +75,11 @@ Flags:
 Semester filtering (applied to all role-based item lookups):
   --semester <term>         loose: keep #used/<term> + items with NO #used/* tag
   --strict-semester <term>  strict: keep ONLY items tagged #used/<term>
+
+Reproducibility:
+  --mark-used <term>        after a clean build, stamp every deck item the build
+                            used with #used/<term> back into the source main
+                            (idempotent; respects --semester/--strict-semester)
 
 Sub-commands:
   audit --main <path>       staleness audit; lists items whose newest #used/*
@@ -326,6 +332,7 @@ async function runMain(args) {
     readmeVariant: args.flags['readme-variant'],
     semester: args.flags.semester,
     strictSemester: args.flags['strict-semester'],
+    markUsed: args.flags['mark-used'],
   };
 
   let failures = 0;
@@ -343,6 +350,25 @@ async function runMain(args) {
     process.stderr.write(`\n${failures} generator(s) failed.\n`);
     process.exit(1);
   }
+
+  // --mark-used <term>: stamp every deck item this build used with #used/<term>
+  // back into the source main, so future --semester <term> builds keep them.
+  // Runs only after a clean build, and respects the active semester filter.
+  if (opts.markUsed) {
+    const r = markUsedTags(parsed, opts.markUsed, {
+      semester: opts.semester,
+      strictSemester: opts.strictSemester,
+    });
+    if (r.files.length === 0 && r.modified === 0 && r.alreadyTagged === 0) {
+      log.warn(`  ! mark-used: nothing to tag (no source file or no markable items)`);
+    } else {
+      log.info(
+        `✓ mark-used: tagged ${r.modified} item(s) with #used/${r.term}` +
+        ` across ${r.files.length} file(s); ${r.alreadyTagged} already tagged.`
+      );
+    }
+  }
+
   log.info('Done.');
 }
 

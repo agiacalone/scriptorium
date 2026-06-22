@@ -95,7 +95,7 @@ scriptorium/
 │   ├── file_systems_abstraction_lecture_main.md  # canonical example (self-contained)
 │   └── README.md                                 # how to compile the sample
 ├── exam-reading-list-cli.js       # sub-tool CLI: multi-topic per-exam reading list (driven by lectern reg-exam-readinglist)
-├── generators/                    # one file per artifact family (lecture-notes, cornell-handout, slides, quiz, study-questions, question-bank, reading-list, exam-reading-list, readme, audit)
+├── generators/                    # one file per artifact family (lecture-notes, cornell-handout, slides, quiz, study-questions, question-bank, reading-list, exam-reading-list, readme, audit); plus non-artifact helpers _filter.js (semester filter) and mark-used.js (#used/<term> writeback)
 ├── lib/                           # shared LaTeX preamble + Cornell palette helpers
 │   └── a11y/                       # ADA Title II / WCAG audit chain (issue #5): contrast verifier; `generate.js` gates on it
 ├── references/
@@ -120,6 +120,7 @@ scriptorium/
 - `node generate.js --main <path> --artifact bank` (alias: `question-bank`)
 - `node generate.js --main <path> --artifact reading-list`
 - `node generate.js --main <path> --out ./out --no-pdf` — override output dir, skip pdflatex
+- `node generate.js --main <path> --mark-used <term>` — after a clean build, stamp `#used/<term>` onto every deck item the build used, written back to the source main (idempotent; respects `--semester`/`--strict-semester`). Implemented in `generators/mark-used.js`; the documented `#used/<term>` reproducibility workflow depends on it.
 - `node exam-reading-list-cli.js --exam-name "Midterm 1" --slug midterm_1 --course "CECS 326" --term sp26 --mains a.md,b.md --out ./out` — **exam reading-list** sub-tool: consolidates several topic `_lecture_main.md` files into one per-exam cue→source study guide (`<slug>_reading_list.md`). Driven by lectern's `reg-exam-readinglist`. Accepts `--textbook`, `--citation-key`, `--note`, `--note-title` overrides.
 
 **Exam generation has moved out of this repo.** Exams are controlled documents owned
