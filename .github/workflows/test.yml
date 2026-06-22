@@ -1,0 +1,22 @@
+name: test
+
+# Minimal CI: syntax-check + the hermetic vitest suite (no LaTeX needed — tests
+# assert generated .tex/.md strings, not compiled PDFs). Broader integration
+# (PDF compile, real-lecture regen) lands with a future RC.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
