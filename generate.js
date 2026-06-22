@@ -183,11 +183,14 @@ async function runArtifact({ artifact, parsed, slug, outDir, log, opts }) {
       return;
     }
     case 'cornell': {
-      const tex = generateCornellHandout(parsed, { ...filterOpts });
+      const { handoutTex, keyTex } = generateCornellHandout(parsed, { ...filterOpts });
       const out = path.join(outDir, `${slug}_cornell_handout.tex`);
-      writeText(out, tex);
-      log.info(`✓ cornell → ${path.basename(out)}`);
+      const keyOut = path.join(outDir, `${slug}_cornell_handout_key.tex`);
+      writeText(out, handoutTex);
+      writeText(keyOut, keyTex);
+      log.info(`✓ cornell → ${path.basename(out)} + ${path.basename(keyOut)}`);
       maybeCompile(out, outDir, log, opts.noPdf);
+      maybeCompile(keyOut, outDir, log, opts.noPdf);
       return;
     }
     case 'bank': {
