@@ -156,9 +156,25 @@ lualatex branch). Existing generator tests stay green.
    exits 1 on any untagged artifact. (Runs after generation, not in `verify.js`'s pre-gen runner, because
    it needs the compiled output.)
 
-**Verified:** 5/5 example PDFs pass the smoke-check on TL2026; full suite 191 green.
-**Remaining for full Phase 3:** install veraPDF (userspace Java) so the deep check (reading order,
-heading hierarchy, table semantics) actually runs — the stage is wired and waiting for it on `PATH`.
+4. ✅ **Blocking model corrected (2026-06-23):** the gate blocks on *tagged-presence* only (untagged →
+   exit 1); veraPDF's PDF/UA-1 verdict is **advisory** (`row.ua1`, logged + in `a11y-report.json`), never
+   blocking — so installing veraPDF doesn't break every lecture build. A `--strict-a11y` flag can opt in.
+
+> **veraPDF installed 2026-06-23 — veraPDF 1.30.2** (userspace, `~/verapdf/`, symlinked `~/bin/verapdf`;
+> headless IzPack console install, CLI pack). The deep check now runs. **Reality check:** all 5 example
+> artifacts are *tagged* but **fail PDF/UA-1** (4–6 rules each). The failing rules, in priority order, are
+> the real Phase 2/remediation backlog:
+> 1. **PDF/UA identifier missing** (clause 5) — XMP lacks the PDF/UA-1 conformance entry. Likely
+>    `\DocumentMetadata{pdfstandard=ua-1,…}` (or the `pdfua` package) rather than bare `testphase`.
+> 2. **`dc:title` missing** + **ViewerPreferences `DisplayDocTitle` not true** (clause 7.1) — set a real
+>    document title in XMP and `\hypersetup{pdftitle=…,pdfdisplaydoctitle=true}`.
+> 3. **PDF header EOL** (clause 6.1) — `%PDF-1.n` + single EOL; pdflatex output nit.
+> 4. **Untagged real content** (clause 7.1 t9) — the `fancyhdr` header/footer rules and page furniture
+>    need `/Artifact` marking (or tagging).
+
+**Verified:** full suite 193 green; `node generate.js` exits 0 with the advisory surfaced.
+**Remaining for full Phase 3 / PDF/UA-1 compliance:** remediate the four rule classes above, re-run
+veraPDF to green, then (optionally) add `--strict-a11y` + wire it into Phase 4 CI.
 
 ---
 

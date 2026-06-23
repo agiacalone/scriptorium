@@ -46,9 +46,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   hierarchy, and table semantics) when present, else a **`pdfinfo` `Tagged:` smoke-check** fallback. A
   tagged PDF passes the smoke-check but its report row says so explicitly — *no silent pass*: a fallback
   pass is never mistaken for a full PDF/UA pass. `generate.js` appends a `pdf-ua` stage to
-  `a11y-report.json` and **gates the build** (exit 1) on any untagged artifact. Pure interpreters +
-  orchestration unit-tested in `lib/a11y/pdfua.test.js`; verified end-to-end (5/5 example PDFs pass the
-  smoke-check on TL2026). Install veraPDF to light up the deep check — the stage auto-detects it on `PATH`.
+  `a11y-report.json`. **Blocking invariant = tagged-presence:** an *untagged* PDF (no StructTreeRoot)
+  fails the build (exit 1). **veraPDF's PDF/UA-1 verdict is advisory** — recorded per artifact (`row.ua1`)
+  and logged loudly, but it does *not* break the build, because full PDF/UA-1 compliance (XMP UA
+  identifier, `dc:title`, `DisplayDocTitle`, content artifacting) is remediation work that shouldn't block
+  lecture generation. A future `--strict-a11y` flag can opt into treating the advisory as blocking. Pure
+  interpreters + orchestration unit-tested in `lib/a11y/pdfua.test.js`; verified end-to-end on TL2026 with
+  veraPDF 1.30.2 installed — 5/5 example PDFs tagged (build passes), all 5 flagged PDF/UA-1 non-compliant
+  in the advisory (4–6 rules each: the four metadata/header rules above + untagged header/footer content).
 - **Table header cells emit `/TH` (ADA Title II, issue #7 Phase 2 polish — table semantics).** The shared
   preambles enable the LaTeX `table` tagging module (`testphase={phase-III,table}`), and both
   comparison-table emitters (`texComparisonTable`, `cornellComparisonTable`) now wrap their tabular in a

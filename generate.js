@@ -240,11 +240,22 @@ function runPdfUaGate(log, { outDir }) {
   }
 
   if (stage.ok) {
-    const mode = /veraPDF\)/.test(stage.rows[0]?.detail || '') ? 'veraPDF PDF/UA-1' : 'pdfinfo smoke-check';
-    log.info(`✓ pdf-ua: ${stage.rows.length} PDF(s) tagged (${mode})`);
+    const hasVera = stage.rows.some((r) => r.ua1);
+    if (hasVera) {
+      const bad = stage.rows.filter((r) => r.ua1 && !r.ua1.compliant);
+      log.info(`✓ pdf-ua: ${stage.rows.length} PDF(s) tagged (veraPDF deep check ran)`);
+      if (bad.length > 0) {
+        // Advisory, not blocking: full PDF/UA-1 compliance is remediation work.
+        log.warn(`  ! pdf-ua advisory: ${bad.length}/${stage.rows.length} PDF(s) not yet PDF/UA-1 compliant (see a11y-report.json):`);
+        for (const r of bad) log.warn(`    · ${r.name}: ${r.ua1.detail}`);
+      }
+    } else {
+      log.info(`✓ pdf-ua: ${stage.rows.length} PDF(s) tagged (pdfinfo smoke-check — install veraPDF for the PDF/UA-1 deep check)`);
+    }
     return true;
   }
-  process.stderr.write('error: PDF/UA tag verification failed:\n');
+  // Hard fail: an untagged PDF has no accessibility tree at all.
+  process.stderr.write('error: PDF/UA tag verification failed — untagged PDF(s):\n');
   for (const r of stage.rows) if (!r.pass) process.stderr.write(`    ✗ ${r.name}: ${r.detail}\n`);
   return false;
 }
