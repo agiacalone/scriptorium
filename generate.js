@@ -26,6 +26,9 @@ import { markUsedTags } from './generators/mark-used.js';
 
 const require = createRequire(import.meta.url);
 const { compileLatex } = require('./lib/tex-helpers.js');
+const { resolveOutDir } = require('./lib/out-dir.js');
+const { cleanupLatexAux } = require('./lib/latex-clean.js');
+const { runPdfUaStage, evaluatePdfUaGate } = require('./lib/a11y/pdfua.js');
 const { projectColorPairs } = require('./lib/a11y/project-palette.js');
 const { auditColorPairs } = require('./lib/a11y/palette-audit.js');
 const { formatReport } = require('./lib/a11y/verify.js');
@@ -74,6 +77,8 @@ Flags:
   --silent                  suppress info-level logs
   --a11y-level <AA|AAA>     WCAG contrast target for the gate; default AA
   --skip-a11y               bypass the ADA/WCAG contrast gate (not recommended)
+  --strict-a11y             fail the build on PDF/UA-1 non-compliance, not just
+                            untagged PDFs (needs veraPDF; intended for CI)
 
 Semester filtering (applied to all role-based item lookups):
   --semester <term>         loose: keep #used/<term> + items with NO #used/* tag
@@ -111,6 +116,8 @@ function parseArgs(argv) {
       args.flags.noPdf = true;
     } else if (a === '--skip-a11y') {
       args.flags.skipA11y = true;
+    } else if (a === '--strict-a11y') {
+      args.flags.strictA11y = true;
     } else if (a === '--silent') {
       args.flags.silent = true;
     } else if (a === '-h' || a === '--help') {
@@ -150,6 +157,7 @@ function maybeCompile(texPath, outDir, log, noPdf) {
   if (noPdf) return null;
   try {
     const pdf = compileLatex(texPath, outDir);
+    cleanupLatexAux(texPath, outDir);
     log.info(`  → compiled ${path.basename(pdf)}`);
     return pdf;
   } catch (err) {
@@ -205,6 +213,59 @@ function runA11yGate(log, { level, parsed, outDir }) {
       for (const r of s.rows) if (!r.pass) process.stderr.write(`    ✗ ${r.name}: ${r.detail}\n`);
     }
   }
+  return false;
+}
+
+// Post-generation PDF/UA verification (audit chain, issue #7, Phase 3). The
+// pre-generation gate checks the source; this checks the *compiled* PDFs for a
+// real tagged structure, via veraPDF (deep) or a pdfinfo Tagged smoke-check
+// (fallback). Appends a `pdf-ua` stage to a11y-report.json and gates the build.
+// Returns true when every produced PDF passes.
+function runPdfUaGate(log, { outDir, strict }) {
+  const pdfPaths = fs.existsSync(outDir)
+    ? fs.readdirSync(outDir).filter((f) => f.endsWith('.pdf')).map((f) => path.join(outDir, f))
+    : [];
+  if (pdfPaths.length === 0) return true; // --no-pdf, or nothing compiled
+
+  const stage = runPdfUaStage(pdfPaths);
+  const gate = evaluatePdfUaGate(stage, { strict });
+
+  // Merge into the report the pre-generation gate already wrote.
+  const reportPath = path.join(outDir, 'a11y-report.json');
+  let report = { ok: true, stages: [] };
+  try {
+    if (fs.existsSync(reportPath)) report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  } catch { /* fall back to a fresh report */ }
+  report.stages = [...(report.stages || []).filter((s) => s.stage !== 'pdf-ua'), stage];
+  report.ok = report.stages.every((s) => s.ok);
+  try {
+    writeReport(report, reportPath);
+  } catch (err) {
+    log.warn(`  ! pdf-ua: could not update a11y-report.json: ${err.message}`);
+  }
+
+  // Logging: tagging summary + the veraPDF advisory (always shown, even when it blocks under --strict).
+  const hasVera = stage.rows.some((r) => r.ua1);
+  const untagged = stage.rows.filter((r) => !r.pass);
+  const nonCompliant = stage.rows.filter((r) => r.ua1 && !r.ua1.compliant);
+  if (untagged.length === 0) {
+    if (hasVera) {
+      log.info(`✓ pdf-ua: ${stage.rows.length} PDF(s) tagged (veraPDF deep check ran)`);
+      if (nonCompliant.length > 0) {
+        const label = strict ? 'pdf-ua STRICT' : 'pdf-ua advisory';
+        log.warn(`  ! ${label}: ${nonCompliant.length}/${stage.rows.length} PDF(s) not PDF/UA-1 compliant (see a11y-report.json):`);
+        for (const r of nonCompliant) log.warn(`    · ${r.name}: ${r.ua1.detail}`);
+      }
+    } else {
+      log.info(`✓ pdf-ua: ${stage.rows.length} PDF(s) tagged (pdfinfo smoke-check — install veraPDF for the PDF/UA-1 deep check)`);
+    }
+  }
+
+  if (gate.ok) return true;
+
+  // Block: untagged always; PDF/UA-1 non-compliance only under --strict-a11y.
+  process.stderr.write(`error: PDF/UA gate failed${strict ? ' (--strict-a11y)' : ''}:\n`);
+  for (const b of gate.blocking) process.stderr.write(`    ✗ ${b.name}: ${b.reason}\n`);
   return false;
 }
 
@@ -318,7 +379,7 @@ async function runMain(args) {
     process.exit(2);
   }
 
-  const outDir = args.flags.out || path.dirname(path.resolve(mainPath));
+  const outDir = resolveOutDir(args.flags.out, mainPath);
   fs.mkdirSync(outDir, { recursive: true });
 
   log.info(`Parsing ${mainPath}…`);
@@ -400,6 +461,8 @@ async function runMain(args) {
     }
   }
 
+  if (!runPdfUaGate(log, { outDir, strict: !!args.flags.strictA11y })) process.exit(1);
+
   log.info('Done.');
 }
 
@@ -427,7 +490,7 @@ async function runAudit(args) {
     currentTerm: args.flags['current-term'],
   });
 
-  const outDir = args.flags.out || path.dirname(path.resolve(mainPath));
+  const outDir = resolveOutDir(args.flags.out, mainPath);
   const slug = topicSlugFromMain(mainPath);
   const outPath = path.join(outDir, `${slug}_staleness_audit.md`);
   writeText(outPath, md);

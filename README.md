@@ -277,13 +277,21 @@ npm run verify:a11y  # ADA Title II / WCAG contrast audit of the palettes (--lev
 
 ## Accessibility (ADA Title II / WCAG)
 
-Student-facing materials are built toward WCAG 2.1 AA per the
-[md-monolith design spec](docs/specs/2026-05-07-md-monolith-revamp-design.md#accessibility--ada-title-ii-compliance-non-functional-requirement).
-The first stage of the compliance [audit chain](https://github.com/agiacalone/scriptorium/issues/5)
-is live: a **palette contrast verifier** (`lib/a11y/`) checks every student/instructor
-color pair against the WCAG target. `generate.js` **gates** on it before emitting any
-artifact — run `npm run verify:a11y` standalone, or pass `--skip-a11y` / `--a11y-level AAA`
-to `generate.js`. The student palette currently passes AA.
+Student-facing materials are built toward **WCAG 2.1 AA / PDF/UA-1**. The full compliance
+chain and current status are documented in **[`docs/ACCESSIBILITY.md`](docs/ACCESSIBILITY.md)**
+(the audit-facing record); the [tracking issue is #7](https://github.com/agiacalone/scriptorium/issues/7).
+
+In short, `generate.js` enforces a two-tier gate on every run:
+- **Source lints (blocking):** palette contrast (1.4.3), color-independence (1.4.1), alt-text (1.1.1).
+- **Compiled-PDF check:** every PDF is tagged (`\DocumentMetadata{...pdfstandard=ua-1,...}`); a
+  **veraPDF PDF/UA-1** deep check runs when `verapdf` is on `PATH` (else a `pdfinfo` smoke-check, never a
+  silent pass). Untagged PDFs **fail the build**; PDF/UA-1 non-compliance is advisory by default and
+  blocking under `--strict-a11y` (used in CI).
+
+A machine-readable `a11y-report.json` is written each run. Run `npm run verify:a11y` for the standalone
+palette audit; `--skip-a11y` bypasses the source gate (local iteration only — never for distributed
+materials). Current status: 2/5 example artifacts are fully PDF/UA-1 compliant; the rest are one
+toolchain-gated rule away (see `docs/ACCESSIBILITY.md` §5).
 
 ---
 

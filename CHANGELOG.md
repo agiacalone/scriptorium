@@ -9,6 +9,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- **PDF/UA-1 metadata remediation (ADA Title II, issue #7).** Both shared preambles now declare
+  `\DocumentMetadata{…pdfstandard=ua-1,pdfversion=1.7,…}` (writes the PDF/UA-1 identifier into XMP and
+  forces the PDF-1.7 header PDF/UA-1 requires — the default `\DocumentMetadata` output is PDF 2.0) and add
+  `\hypersetup{pdftitle={<title>},pdfdisplaydoctitle=true}` (satisfies `dc:title` + the `DisplayDocTitle`
+  ViewerPreference). Driven red→green against **veraPDF 1.30.2**: the example artifacts went from 4–6
+  failed PDF/UA-1 rules each to **quiz + quiz key fully compliant (0 failures)** and lecture-notes +
+  Cornell handout + key down to a **single** remaining rule (clause 7.1 t3 — colortbl `\cellcolor`/
+  `\columncolor` and an `mdframed` fill emit *untagged decorative content* that still needs `/Artifact`
+  marking; a known colortbl+tagging limitation, tracked as the final remediation step). Unit-tested in
+  `lib/{tex-helpers,cornell-tex}.test.js`.
+- **Generated artifacts + LaTeX intermediates no longer litter the topic root.** `generate.js`
+  defaulted `--out` to `path.dirname(mainPath)`, so a no-`--out` run dropped every `.tex`/`.pdf`/`.md`
+  artifact — plus pdflatex's `.aux`/`.log`/`.out`/`.nav`/`.snm`/`.toc` scratch — directly beside the kept
+  `_lecture_main.md` source, drifting the classes-layout-doctrine (hit `intro_to_compsec` +
+  `999/ac_measurement_principles`). Now the default output is a `products/` subdirectory beside the
+  source (`lib/out-dir.js` `resolveOutDir`; explicit `--out` still honored verbatim), and
+  `compileLatex` sweeps its intermediates after each successful compile, leaving only the `.tex` and
+  `.pdf` (`lib/latex-clean.js` `cleanupLatexAux`; never touches the `.tex`/`.pdf` or other decks' files).
+  Covered by `lib/out-dir.test.js` + `lib/latex-clean.test.js`; verified end-to-end on the example lecture.
 - **Restored the Cornell handout in-class answer key.** The `[topic]_cornell_handout_key.pdf`
   output — added in `7cd5307` ("feat: in-class answer key for the Cornell handout") — was
   silently dropped by `f085e277` ("chore: catch up installed-skill drift"), the 2026-05-14
@@ -31,6 +50,43 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   actually executable. Covered by `generators/mark-used.test.js`.
 
 ### Added
+- **`docs/ACCESSIBILITY.md` — audit-grade ADA Title II / WCAG / PDF/UA-1 compliance record.** Documents the
+  regulatory scope (Title II, DOJ 2024 rule, WCAG 2.1 AA → PDF/UA-1), the two-tier audit-chain architecture
+  (source lints + compiled-PDF validation), the blocking model, the tagging mechanism, the evidence
+  (`a11y-report.json` + veraPDF), an honest per-artifact status table, and the maintenance process.
+  **§2.1 frames the whole pipeline as a compiler** (source→AST→codegen→backend; tagging = type annotations;
+  veraPDF = the type-checker; `--strict-a11y` = `-Werror`) and characterizes the residual clause-7.1-t3
+  rule as a **codegen-gap in the LaTeX tagging backend** — experimentally confirmed (a full de-styling left
+  the failure unchanged at ~100 untagged items), so it is not fixable from the source. `CLAUDE.md` +
+  `AGENTS.md` gained an agent-facing accessibility-gate section; the README links the record.
+- **PDF/UA-1 validation gate — the audit chain now checks the *compiled* PDFs (ADA Title II, issue #7 Phase 3).**
+  New `lib/a11y/pdfua.js` stage runs after generation over every produced PDF, in two tiers: the
+  **veraPDF** CLI (PDF/UA-1 profile — the authoritative deep check of tags, reading order, heading
+  hierarchy, and table semantics) when present, else a **`pdfinfo` `Tagged:` smoke-check** fallback. A
+  tagged PDF passes the smoke-check but its report row says so explicitly — *no silent pass*: a fallback
+  pass is never mistaken for a full PDF/UA pass. `generate.js` appends a `pdf-ua` stage to
+  `a11y-report.json`. **Blocking invariant = tagged-presence:** an *untagged* PDF (no StructTreeRoot)
+  fails the build (exit 1). **veraPDF's PDF/UA-1 verdict is advisory** — recorded per artifact (`row.ua1`)
+  and logged loudly, but it does *not* break the build, because full PDF/UA-1 compliance (XMP UA
+  identifier, `dc:title`, `DisplayDocTitle`, content artifacting) is remediation work that shouldn't block
+  lecture generation. A future `--strict-a11y` flag can opt into treating the advisory as blocking. Pure
+  interpreters + orchestration unit-tested in `lib/a11y/pdfua.test.js`; verified end-to-end on TL2026 with
+  veraPDF 1.30.2 installed — 5/5 example PDFs tagged (build passes), all 5 flagged PDF/UA-1 non-compliant
+  in the advisory (4–6 rules each: the four metadata/header rules above + untagged header/footer content).
+- **Table header cells emit `/TH` (ADA Title II, issue #7 Phase 2 polish — table semantics).** The shared
+  preambles enable the LaTeX `table` tagging module (`testphase={phase-III,table}`), and both
+  comparison-table emitters (`texComparisonTable`, `cornellComparisonTable`) now wrap their tabular in a
+  group-scoped `\tagpdfsetup{table/header-rows={1}}`, marking row 1's cells as `/TH` instead of `/TD`. The
+  group keeps the directive local — verified via a pikepdf StructElem scan that a comparison table's header
+  becomes `TH` while non-header *layout* tables (e.g. the Cornell two-column cue/notes table) keep `TD`
+  with no leak to later tables. Unit-tested in `lib/tex-helpers.test.js` + `lib/cornell-tex.test.js`.
+- **GFM comparison tables now flow from source → tagged `/TH` output.** The parser captures Markdown pipe
+  tables (`parsed.tables` + `tablesForSection()`), associating each with its enclosing Roman section; the
+  lecture-notes and Cornell-handout generators render them through `texComparisonTable` /
+  `cornellComparisonTable` (so the `/TH` header tagging above is no longer latent — it ships). Verified on
+  the example lecture (a Hard-link vs Symlink comparison table under §III): pikepdf shows **TH=3** header
+  cells in both `lecture_notes.pdf` and `cornell_handout.pdf`. Parser + generator coverage in
+  `parser/main-parser.test.js`, `generators/lecture-notes.test.js`, `generators/cornell-handout.test.js`.
 - **Tagged-PDF emission — every artifact is now a tagged PDF (ADA Title II, issue #7 Phase 2).** The shared
   preambles (`lib/tex-helpers.js` `texPreamble`, `lib/cornell-tex.js` `cornellPreamble`) now emit
   `\DocumentMetadata{lang=en-US,testphase={phase-III}}` ahead of `\documentclass`, enabling LaTeX's

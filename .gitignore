@@ -1,6 +1,7 @@
 node_modules/
 *.log
 out/
+products/
 *.aux
 *.log
 *.out
