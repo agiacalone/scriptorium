@@ -26,6 +26,9 @@ import { markUsedTags } from './generators/mark-used.js';
 
 const require = createRequire(import.meta.url);
 const { compileLatex } = require('./lib/tex-helpers.js');
+const { resolveOutDir } = require('./lib/out-dir.js');
+const { cleanupLatexAux } = require('./lib/latex-clean.js');
+const { runPdfUaStage } = require('./lib/a11y/pdfua.js');
 const { projectColorPairs } = require('./lib/a11y/project-palette.js');
 const { auditColorPairs } = require('./lib/a11y/palette-audit.js');
 const { formatReport } = require('./lib/a11y/verify.js');
@@ -150,6 +153,7 @@ function maybeCompile(texPath, outDir, log, noPdf) {
   if (noPdf) return null;
   try {
     const pdf = compileLatex(texPath, outDir);
+    cleanupLatexAux(texPath, outDir);
     log.info(`  → compiled ${path.basename(pdf)}`);
     return pdf;
   } catch (err) {
@@ -205,6 +209,43 @@ function runA11yGate(log, { level, parsed, outDir }) {
       for (const r of s.rows) if (!r.pass) process.stderr.write(`    ✗ ${r.name}: ${r.detail}\n`);
     }
   }
+  return false;
+}
+
+// Post-generation PDF/UA verification (audit chain, issue #7, Phase 3). The
+// pre-generation gate checks the source; this checks the *compiled* PDFs for a
+// real tagged structure, via veraPDF (deep) or a pdfinfo Tagged smoke-check
+// (fallback). Appends a `pdf-ua` stage to a11y-report.json and gates the build.
+// Returns true when every produced PDF passes.
+function runPdfUaGate(log, { outDir }) {
+  const pdfPaths = fs.existsSync(outDir)
+    ? fs.readdirSync(outDir).filter((f) => f.endsWith('.pdf')).map((f) => path.join(outDir, f))
+    : [];
+  if (pdfPaths.length === 0) return true; // --no-pdf, or nothing compiled
+
+  const stage = runPdfUaStage(pdfPaths);
+
+  // Merge into the report the pre-generation gate already wrote.
+  const reportPath = path.join(outDir, 'a11y-report.json');
+  let report = { ok: true, stages: [] };
+  try {
+    if (fs.existsSync(reportPath)) report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  } catch { /* fall back to a fresh report */ }
+  report.stages = [...(report.stages || []).filter((s) => s.stage !== 'pdf-ua'), stage];
+  report.ok = report.stages.every((s) => s.ok);
+  try {
+    writeReport(report, reportPath);
+  } catch (err) {
+    log.warn(`  ! pdf-ua: could not update a11y-report.json: ${err.message}`);
+  }
+
+  if (stage.ok) {
+    const mode = /veraPDF\)/.test(stage.rows[0]?.detail || '') ? 'veraPDF PDF/UA-1' : 'pdfinfo smoke-check';
+    log.info(`✓ pdf-ua: ${stage.rows.length} PDF(s) tagged (${mode})`);
+    return true;
+  }
+  process.stderr.write('error: PDF/UA tag verification failed:\n');
+  for (const r of stage.rows) if (!r.pass) process.stderr.write(`    ✗ ${r.name}: ${r.detail}\n`);
   return false;
 }
 
@@ -318,7 +359,7 @@ async function runMain(args) {
     process.exit(2);
   }
 
-  const outDir = args.flags.out || path.dirname(path.resolve(mainPath));
+  const outDir = resolveOutDir(args.flags.out, mainPath);
   fs.mkdirSync(outDir, { recursive: true });
 
   log.info(`Parsing ${mainPath}…`);
@@ -400,6 +441,8 @@ async function runMain(args) {
     }
   }
 
+  if (!runPdfUaGate(log, { outDir })) process.exit(1);
+
   log.info('Done.');
 }
 
@@ -427,7 +470,7 @@ async function runAudit(args) {
     currentTerm: args.flags['current-term'],
   });
 
-  const outDir = args.flags.out || path.dirname(path.resolve(mainPath));
+  const outDir = resolveOutDir(args.flags.out, mainPath);
   const slug = topicSlugFromMain(mainPath);
   const outPath = path.join(outDir, `${slug}_staleness_audit.md`);
   writeText(outPath, md);

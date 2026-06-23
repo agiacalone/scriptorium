@@ -1,6 +1,6 @@
 ---
 created: 2026-06-22T12:25:00-07:00
-updated: 2026-06-22T12:25:00-07:00
+updated: 2026-06-23T10:50:00-07:00
 tags: [scriptorium, accessibility, teaching, tooling, plan]
 type: plan
 status: draft
@@ -114,8 +114,18 @@ existing `verify.js` runner / `generate.js` gate; `a11y-report.json` is now emit
 feared lualatex/fontspec migration was *avoided* — engine stays pdflatex. `\DocumentMetadata{...testphase=
 {phase-III}}` added to both shared preambles (`texPreamble`, `cornellPreamble`). Verified: lecture-notes,
 Cornell handout + key, quiz + key all `Tagged: yes` with a real `StructTreeRoot` (Document → lists, tables
-→ TR/TD). 168 tests green; full build clean. **Remaining Phase 2 polish** (incremental): table header cells
-(`\thead{}` → `/TH`), heading-hierarchy outline, figure alt actualtext.
+→ TR/TD). 168 tests green; full build clean. **Remaining Phase 2 polish** (incremental): ~~table header cells
+(`\thead{}` → `/TH`)~~ ✅ **mechanism done 2026-06-23** (see below); heading-hierarchy outline, figure alt actualtext.
+
+> **Table header `/TH` — verified recipe (2026-06-23).** `\thead{}` was a red herring; the working mechanism on
+> TL2026 is: (1) add the `table` module to the metadata — `\DocumentMetadata{…testphase={phase-III,table}}`; (2)
+> wrap the table in a group with `\tagpdfsetup{table/header-rows={1}}`. Empirically confirmed via a pikepdf
+> StructTreeRoot walk: header row → `/TH`, data rows → `/TD`, and the group scope keeps non-header *layout*
+> tables (e.g. the Cornell cue/notes table) at `/TD` with no leak to later tables. Applied to `texComparisonTable`
+> + `cornellComparisonTable` and unit-tested. **Caveat:** those comparison-table emitters are not yet called by the
+> live markdown-monolith generators, so the recipe is correct + ready but no shipping artifact emits `/TH` yet —
+> wiring them in is the remaining step. The two auto-mechanisms that *don't* work (so we don't retry them):
+> plain `phase-III` and `phase-III,table` + `\midrule`/booktabs both yield `/TD` only.
 
 1. Add `\DocumentMetadata{...testphase={phase-III}}` + `tagpdf` setup to the **shared** preamble:
    `lib/tex-helpers.js` (instructor) and `lib/cornell-tex.js` (student). One preamble change
@@ -133,17 +143,22 @@ lualatex branch). Existing generator tests stay green.
 
 ---
 
-## Phase 3 — veraPDF validation stage `[M]`  — needs Phase 2 output
+## Phase 3 — veraPDF validation stage `[M]`  — ✅ CORE DONE 2026-06-23
 
-1. `lib/a11y/pdfua.js` — wrap the veraPDF CLI (PDF/UA-1 profile) per artifact; parse its
-   machine-readable report into the Phase 1a JSON shape. This stage mechanically covers tags,
-   reading order, heading hierarchy, and table semantics in one shot.
-2. No-Java fallback: if `verapdf` is absent, fall back to a `pdfinfo` `StructTreeRoot`-presence
-   smoke-check (degrade gracefully, log that the deep check was skipped — no silent pass).
-3. Register in `verify.js`; gate in `generate.js`.
+1. ✅ `lib/a11y/pdfua.js` — wraps the veraPDF CLI (PDF/UA-1 profile) per artifact; parses its
+   machine-readable report into the Phase 1a JSON shape. Pure interpreters (`interpretPdfinfo`,
+   `interpretVeraJson`) + `auditPdfUA` orchestration unit-tested in `lib/a11y/pdfua.test.js` (8 tests).
+2. ✅ No-Java fallback: when `verapdf` is absent, falls back to a `pdfinfo` `Tagged:` smoke-check —
+   a tagged PDF passes but its report row says "smoke-check only — install veraPDF", so a fallback pass
+   is **never** mistaken for a full PDF/UA pass (no silent pass). veraPDF auto-detected on `PATH`.
+3. ✅ Gated in `generate.js` as a **post-generation** step (`runPdfUaGate`) — the pre-generation gate
+   checks the source, this checks the compiled PDFs. Appends a `pdf-ua` stage to `a11y-report.json` and
+   exits 1 on any untagged artifact. (Runs after generation, not in `verify.js`'s pre-gen runner, because
+   it needs the compiled output.)
 
-**Verify:** `lib/a11y/pdfua.test.js` against a known-tagged fixture (pass) and a known-untagged
-fixture (fail). Manual: run over a regenerated example lecture, confirm PDF/UA-1 clean.
+**Verified:** 5/5 example PDFs pass the smoke-check on TL2026; full suite 191 green.
+**Remaining for full Phase 3:** install veraPDF (userspace Java) so the deep check (reading order,
+heading hierarchy, table semantics) actually runs — the stage is wired and waiting for it on `PATH`.
 
 ---
 
