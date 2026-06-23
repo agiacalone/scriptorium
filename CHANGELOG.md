@@ -9,6 +9,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Fixed
+- **PDF/UA-1 metadata remediation (ADA Title II, issue #7).** Both shared preambles now declare
+  `\DocumentMetadata{…pdfstandard=ua-1,pdfversion=1.7,…}` (writes the PDF/UA-1 identifier into XMP and
+  forces the PDF-1.7 header PDF/UA-1 requires — the default `\DocumentMetadata` output is PDF 2.0) and add
+  `\hypersetup{pdftitle={<title>},pdfdisplaydoctitle=true}` (satisfies `dc:title` + the `DisplayDocTitle`
+  ViewerPreference). Driven red→green against **veraPDF 1.30.2**: the example artifacts went from 4–6
+  failed PDF/UA-1 rules each to **quiz + quiz key fully compliant (0 failures)** and lecture-notes +
+  Cornell handout + key down to a **single** remaining rule (clause 7.1 t3 — colortbl `\cellcolor`/
+  `\columncolor` and an `mdframed` fill emit *untagged decorative content* that still needs `/Artifact`
+  marking; a known colortbl+tagging limitation, tracked as the final remediation step). Unit-tested in
+  `lib/{tex-helpers,cornell-tex}.test.js`.
 - **Generated artifacts + LaTeX intermediates no longer litter the topic root.** `generate.js`
   defaulted `--out` to `path.dirname(mainPath)`, so a no-`--out` run dropped every `.tex`/`.pdf`/`.md`
   artifact — plus pdflatex's `.aux`/`.log`/`.out`/`.nav`/`.snm`/`.toc` scratch — directly beside the kept

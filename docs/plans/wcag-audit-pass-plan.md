@@ -1,6 +1,6 @@
 ---
 created: 2026-06-22T12:25:00-07:00
-updated: 2026-06-23T10:50:00-07:00
+updated: 2026-06-23T11:50:00-07:00
 tags: [scriptorium, accessibility, teaching, tooling, plan]
 type: plan
 status: draft
@@ -172,8 +172,22 @@ lualatex branch). Existing generator tests stay green.
 > 4. **Untagged real content** (clause 7.1 t9) — the `fancyhdr` header/footer rules and page furniture
 >    need `/Artifact` marking (or tagging).
 
-**Verified:** full suite 193 green; `node generate.js` exits 0 with the advisory surfaced.
-**Remaining for full Phase 3 / PDF/UA-1 compliance:** remediate the four rule classes above, re-run
+> **Remediation done 2026-06-23 (metadata tier).** Applied to both preambles, driven red→green against
+> veraPDF 1.30.2: `\DocumentMetadata{…pdfstandard=ua-1,pdfversion=1.7,…}` (clauses 5 + 6.1) +
+> `\hypersetup{pdftitle={<headerLeft>},pdfdisplaydoctitle=true}` (clause 7.1 dc:title + DisplayDocTitle).
+> **Result:** quiz + quiz key now **fully PDF/UA-1 compliant (0 failures)**; lecture-notes + Cornell
+> handout + key down to **1 rule** each (from 5–6). The minimal/furniture/mdframed cases all PASS — the
+> metadata recipe is the big lever.
+>
+> **Last rule (clause 7.1 t3 — untagged decorative content):** colortbl `\cellcolor`/`\columncolor`
+> (Cornell cue/notes table, 39× `\cellcolor` + 4× `\columncolor`) and an `mdframed` fill (lecture-notes)
+> draw colored backgrounds that aren't tagged or `/Artifact`-marked. This is a known colortbl+tagging
+> limitation; the fix is to wrap those fills as artifacts (or move to a tagging-aware table mechanism).
+> Lower-value than the metadata tier — tracked as its own TODO.
+
+**Verified:** full suite 196 green; `node generate.js` exits 0; 2/5 example artifacts fully PDF/UA-1, 3/5
+one rule away.
+**Remaining for full PDF/UA-1 compliance:** `/Artifact`-mark the decorative color fills (above), re-run
 veraPDF to green, then (optionally) add `--strict-a11y` + wire it into Phase 4 CI.
 
 ---
