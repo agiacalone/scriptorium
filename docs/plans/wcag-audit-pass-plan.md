@@ -179,11 +179,20 @@ lualatex branch). Existing generator tests stay green.
 > handout + key down to **1 rule** each (from 5–6). The minimal/furniture/mdframed cases all PASS — the
 > metadata recipe is the big lever.
 >
-> **Last rule (clause 7.1 t3 — untagged decorative content):** colortbl `\cellcolor`/`\columncolor`
-> (Cornell cue/notes table, 39× `\cellcolor` + 4× `\columncolor`) and an `mdframed` fill (lecture-notes)
-> draw colored backgrounds that aren't tagged or `/Artifact`-marked. This is a known colortbl+tagging
-> limitation; the fix is to wrap those fills as artifacts (or move to a tagging-aware table mechanism).
-> Lower-value than the metadata tier — tracked as its own TODO.
+> **Last rule (clause 7.1 t3 — untagged decorative content) — TOOLCHAIN-LIMITED (investigated 2026-06-23).**
+> Isolated via veraPDF spikes to two sources, neither of which is the *color*:
+> 1. **Table border rules** — `\hline`, `|` column separators, *and* booktabs `\toprule/\midrule/\bottomrule`
+>    all emit untagged content. Only a fully borderless table (`{XX}`, no rules) passes. (Hits the Cornell
+>    cue/notes table.)
+> 2. **`mdframed` background fills** — the 4 navy briefing strips in lecture-notes
+>    (`backgroundcolor=instrNavy`) draw an untagged fill. (lecture-notes has no tables at all.)
+>
+> phase-III tagging on TL2026 does **not** auto-artifact either. A naive `\tagmcbegin{artifact}` wrapper
+> around the table made it *worse* (1 → 2 rules), so manual artifacting is not a clean fix. The two real
+> paths: **(a)** drop the borders/fills (design regression — violates the "color as a functional lecture
+> cue" rule in CLAUDE.md), or **(b)** wait for / adopt a tagging-aware table+frame mechanism as the LaTeX
+> tagging project matures (rule/frame artifacting is expected in a later phase). Lower value than the
+> metadata tier; the **advisory gate is the correct posture** until one of those lands. Tracked as its own TODO.
 
 **Verified:** full suite 196 green; `node generate.js` exits 0; 2/5 example artifacts fully PDF/UA-1, 3/5
 one rule away.
