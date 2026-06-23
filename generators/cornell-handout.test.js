@@ -173,3 +173,25 @@ course: CECS 378
     });
   });
 });
+
+describe('cornell-handout — comparison tables', () => {
+  const src = `---
+title: T
+course: CECS 326
+type: lecture-main
+---
+
+## III. Links (10 min)
+
+- A blank here. #blank #section/III [slide:: 1] [answer:: x]
+
+| Aspect | Hard link | Symlink |
+|---|---|---|
+| Crosses FS | No | Yes |
+`;
+  it('renders a section comparison table with /TH header tagging', () => {
+    const { handoutTex } = generateCornellHandout(parse({ source: src }));
+    expect(handoutTex).toContain('\\tagpdfsetup{table/header-rows={1}}');
+    expect(handoutTex).toContain('Hard link');
+  });
+});

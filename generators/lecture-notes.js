@@ -29,6 +29,7 @@ const {
   texBriefingSection,
   texBulletList,
   texCallout,
+  texComparisonTable,
   texEscape,
 } = tex;
 
@@ -146,6 +147,12 @@ export function generateLectureNotes(parsed, options = {}) {
     if (activities.length > 0) {
       out.push(`\\par\\smallskip\\noindent\\textbf{Activities}\\par`);
       out.push(texNumberedList(activities));
+    }
+
+    // Comparison tables (GFM tables under this section) — header row tagged /TH.
+    const tablesFor = parsed.tablesForSection ? parsed.tablesForSection(key) : [];
+    for (const t of tablesFor) {
+      if (t.headers && t.headers.length > 0) out.push(texComparisonTable(t.headers, t.rows));
     }
   });
 

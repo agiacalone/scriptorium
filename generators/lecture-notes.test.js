@@ -96,3 +96,26 @@ term: sp26
     });
   });
 });
+
+describe('lecture-notes generator — comparison tables', () => {
+  const src = `---
+title: T
+course: CECS 326
+type: lecture-main
+---
+
+## III. Links (10 min)
+
+- A concept here. #concept #section/III [slide:: 1]
+
+| Aspect | Hard link | Symlink |
+|---|---|---|
+| Crosses FS | No | Yes |
+`;
+  it('renders a section comparison table with /TH header tagging', () => {
+    const tex = generateLectureNotes(parse({ source: src }));
+    expect(tex).toContain('\\tagpdfsetup{table/header-rows={1}}'); // /TH header cells
+    expect(tex).toContain('Hard link');
+    expect(tex).toContain('Crosses FS');
+  });
+});

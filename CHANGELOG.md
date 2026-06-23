@@ -68,12 +68,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   preambles enable the LaTeX `table` tagging module (`testphase={phase-III,table}`), and both
   comparison-table emitters (`texComparisonTable`, `cornellComparisonTable`) now wrap their tabular in a
   group-scoped `\tagpdfsetup{table/header-rows={1}}`, marking row 1's cells as `/TH` instead of `/TD`. The
-  group keeps the directive local — verified via pikepdf struct-tree walk that a comparison table's header
+  group keeps the directive local — verified via a pikepdf StructElem scan that a comparison table's header
   becomes `TH` while non-header *layout* tables (e.g. the Cornell two-column cue/notes table) keep `TD`
   with no leak to later tables. Unit-tested in `lib/tex-helpers.test.js` + `lib/cornell-tex.test.js`.
-  *(Note: the comparison-table emitters are not yet wired into the live markdown-monolith generators — this
-  makes the mechanism correct and ready for when they are; today's shipping artifacts contain no data table
-  needing `/TH`.)*
+- **GFM comparison tables now flow from source → tagged `/TH` output.** The parser captures Markdown pipe
+  tables (`parsed.tables` + `tablesForSection()`), associating each with its enclosing Roman section; the
+  lecture-notes and Cornell-handout generators render them through `texComparisonTable` /
+  `cornellComparisonTable` (so the `/TH` header tagging above is no longer latent — it ships). Verified on
+  the example lecture (a Hard-link vs Symlink comparison table under §III): pikepdf shows **TH=3** header
+  cells in both `lecture_notes.pdf` and `cornell_handout.pdf`. Parser + generator coverage in
+  `parser/main-parser.test.js`, `generators/lecture-notes.test.js`, `generators/cornell-handout.test.js`.
 - **Tagged-PDF emission — every artifact is now a tagged PDF (ADA Title II, issue #7 Phase 2).** The shared
   preambles (`lib/tex-helpers.js` `texPreamble`, `lib/cornell-tex.js` `cornellPreamble`) now emit
   `\DocumentMetadata{lang=en-US,testphase={phase-III}}` ahead of `\documentclass`, enabling LaTeX's

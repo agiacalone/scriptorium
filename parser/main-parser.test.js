@@ -109,3 +109,41 @@ title: t
     expect(q.children[1].text).toMatch(/right/);
   });
 });
+
+describe('parse: comparison tables (GFM)', () => {
+  const src = `---
+title: T
+course: CECS 326
+type: lecture-main
+---
+
+## III. Links (10 min)
+
+| Aspect | Hard link | Symlink |
+|---|---|---|
+| Crosses filesystems | No | Yes |
+| Survives target delete | Yes | No |
+`;
+
+  it('captures a GFM table with headers and rows', () => {
+    const p = parse({ source: src });
+    expect(Array.isArray(p.tables)).toBe(true);
+    expect(p.tables).toHaveLength(1);
+    expect(p.tables[0].headers).toEqual(['Aspect', 'Hard link', 'Symlink']);
+    expect(p.tables[0].rows).toEqual([
+      ['Crosses filesystems', 'No', 'Yes'],
+      ['Survives target delete', 'Yes', 'No'],
+    ]);
+  });
+
+  it('associates the table with its enclosing roman section', () => {
+    const p = parse({ source: src });
+    expect(p.tables[0].section).toBe('III');
+  });
+
+  it('exposes tablesForSection() lookup', () => {
+    const p = parse({ source: src });
+    expect(p.tablesForSection('III')).toHaveLength(1);
+    expect(p.tablesForSection('I')).toEqual([]);
+  });
+});

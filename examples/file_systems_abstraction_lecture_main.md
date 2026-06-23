@@ -150,6 +150,15 @@ updated: 2026-05-17T11:35:00-07:00
 - Why doesn't the disk just store filenames directly, instead of using inodes plus directory entries? #discussion #section/III
 - Pair drill: a simple OS supports only a SINGLE directory but allows arbitrarily long filenames. Sketch a scheme that approximates a hierarchical file system. #activity #section/III [citation:: Tanenbaum Q2]
 
+### Comparison
+
+| Aspect | Hard link | Symbolic link |
+|---|---|---|
+| Crosses filesystems | No — inode numbers are per-filesystem | Yes — stores a path string |
+| Survives target deletion | Yes — link count keeps the inode alive | No — becomes a dangling link |
+| Can point to a directory | No (except the `.`/`..` the FS makes) | Yes |
+| Storage cost | A directory entry only | A small file holding the path |
+
 ## IV. Path Resolution and Live Demo (15 min)
 
 ### Concepts

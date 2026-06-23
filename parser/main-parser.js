@@ -120,6 +120,13 @@ export function parse({ path, source } = {}) {
   // list-item stack (depth-aware)
   const itemStack = []; // { item, level }
 
+  // GFM comparison tables (rendered via texComparisonTable / cornellComparisonTable).
+  const tables = [];
+  let curTable = null;
+  let curRow = null;
+  let inTableHeader = false;
+  let inTableCell = false;
+
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
 
@@ -201,6 +208,35 @@ export function parse({ path, source } = {}) {
       current.fields.set('code', existing ? `${existing}\n${block}` : block);
       // Don't try to merge into text — keep the visible stem clean. The
       // exam/quiz renderers consult fields.get('code') explicitly.
+    } else if (tok.type === 'table_open' && itemStack.length === 0) {
+      curTable = {
+        headers: [],
+        rows: [],
+        section: resolveSection(new Set(), headingStack),
+        sourceLine: (tok.map ? tok.map[0] : 0) + 1 + bodyLineOffset,
+      };
+      inTableHeader = false;
+      curRow = null;
+      inTableCell = false;
+    } else if (tok.type === 'thead_open' && curTable) {
+      inTableHeader = true;
+    } else if (tok.type === 'thead_close' && curTable) {
+      inTableHeader = false;
+    } else if (tok.type === 'tr_open' && curTable) {
+      curRow = [];
+    } else if (tok.type === 'tr_close' && curTable) {
+      if (inTableHeader) curTable.headers = curRow;
+      else curTable.rows.push(curRow);
+      curRow = null;
+    } else if ((tok.type === 'th_open' || tok.type === 'td_open') && curTable) {
+      inTableCell = true;
+    } else if ((tok.type === 'th_close' || tok.type === 'td_close') && curTable) {
+      inTableCell = false;
+    } else if (tok.type === 'inline' && curTable && inTableCell && curRow) {
+      curRow.push((tok.content || '').trim());
+    } else if (tok.type === 'table_close' && curTable) {
+      tables.push(curTable);
+      curTable = null;
     }
   }
 
@@ -208,5 +244,9 @@ export function parse({ path, source } = {}) {
     return byTag.get(`used/${term}`) ?? [];
   }
 
-  return { frontmatter, body: content, items, byTag, bySection, byRole, byTerm };
+  function tablesForSection(sectionKey) {
+    return tables.filter((t) => t.section === sectionKey);
+  }
+
+  return { frontmatter, body: content, items, byTag, bySection, byRole, byTerm, tables, tablesForSection };
 }

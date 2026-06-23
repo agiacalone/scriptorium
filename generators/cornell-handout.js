@@ -47,6 +47,7 @@ const {
   cornellVocabGrid,
   cornellSectionBanner,
   cornellTable,
+  cornellComparisonTable,
   cornellKeyCallout,
   cornellSummaryStrip,
   cornellReferences,
@@ -222,6 +223,12 @@ export function generateCornellHandout(parsed, options = {}) {
     // KEY callouts after the table.
     for (const k of itemsForSection(parsed, key, 'key-callout', options)) {
       out.push(cornellKeyCallout(k.text, kind));
+    }
+
+    // Comparison tables (GFM tables under this section) — header row tagged /TH.
+    const tablesFor = parsed.tablesForSection ? parsed.tablesForSection(key) : [];
+    for (const t of tablesFor) {
+      if (t.headers && t.headers.length > 0) out.push(cornellComparisonTable(t.headers, t.rows, kind));
     }
   });
 
