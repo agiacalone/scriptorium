@@ -57,3 +57,9 @@ generator code. The generator JS files are not skill output.
 Scriptorium handles **content** (this repo). Administration is Lectern (`reg-*` CLI);
 grading is Oracle (verify-by-proof service + gradebox). See `README.md` for the
 full suite overview.
+
+## Changelog philosophy
+
+Every change lands its `CHANGELOG.md` entry **in the same commit/PR** — git tells you the diff, the changelog tells you the story. Format: [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/), newest-first under `## [Unreleased]`; groups `Added` / `Changed` / `Deprecated` / `Removed` / `Fixed` / `Security` (only those with entries). Entries say **what changed and why**, for humans.
+
+**Regression-citation rule (load-bearing):** when a `Fixed` entry documents a regression, cite the chain — the commit that *introduced* the feature, the one that *broke* it, the *mechanism* of the break, and the *restore* — so the next person diagnoses it from the changelog, not a cold `git log`.
