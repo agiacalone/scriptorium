@@ -31,6 +31,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   actually executable. Covered by `generators/mark-used.test.js`.
 
 ### Added
+- **Tagged-PDF emission — every artifact is now a tagged PDF (ADA Title II, issue #7 Phase 2).** The shared
+  preambles (`lib/tex-helpers.js` `texPreamble`, `lib/cornell-tex.js` `cornellPreamble`) now emit
+  `\DocumentMetadata{lang=en-US,testphase={phase-III}}` ahead of `\documentclass`, enabling LaTeX's
+  automatic PDF tagging. Verified on **TeX Live 2026**: lecture-notes, Cornell handout + key, and quiz + key
+  all compile to `pdfinfo → Tagged: yes` with a real `StructTreeRoot` (Document → lists with `LI`/`Lbl`/`LBody`,
+  tables with `TR`/`TD`). pdflatex tagging works on TL2026, so **no lualatex/fontspec migration was needed** —
+  the engine stays pdflatex. Requires a tagging-capable TeX Live (≥2024); on the no-op `tagpdf` stub in
+  TL2023 the directive is silently inert (output simply untagged, no error). Covered by new assertions in
+  `generators/lecture-notes.test.js` + `generators/cornell-handout.test.js`. Remaining Phase 2 polish:
+  table header cells (`\thead{}` → `/TH`), heading-hierarchy outline, figure alt actualtext; then Phase 3
+  wires veraPDF PDF/UA-1 validation.
+- **ADA audit chain — stages 2+ (source-level lints + machine-readable report).** Extends the Stage 1
+  palette-contrast gate (#5/#6) toward issue #7. Three new `lib/a11y/` stages hang off the existing
+  `verify.js` runner / `generate.js` gate: `alt-text.js` promotes the parser's first-error `[alt::]`
+  check into a stage that collects *every* missing-alt visual with its source line; `color-independence.js`
+  is a render-based WCAG 1.4.1 sweep asserting every instructor callout emits its textual `[KIND]` badge
+  and every student section banner emits its title (color is never the sole cue); `report.js` is a uniform
+  `{stage, ok, rows}` model serialized to `a11y-report.json` so CI can gate on a per-stage status, not just
+  console output. `npm run verify:a11y` gains `--out <dir>`; `generate.js` writes the per-run report and now
+  gates on all three stages. Covered by `report.test.js`, `alt-text.test.js`, `color-independence.test.js`
+  (15 new tests). Tagged-PDF emission (the remaining #7 stages) is blocked on a TeX Live upgrade — the
+  on-box TeX Live 2023 ships a no-op `tagpdf` stub; see `docs/plans/wcag-audit-pass-plan.md`.
 - **Extended the `examples/` demo beyond the single lecture.** Two more self-contained sample sources — `processes_and_threads_lecture_main.md` (a second CECS 326 topic, tagged `#used/sp26`) and `secure_protocols_478_lecture_main.md` (a CECS 478 topic) — plus `examples/README.md` sections demonstrating four previously-undemonstrated capabilities: the multi-topic `exam-reading-list-cli.js`, course-driven theme selection (blueprint for 326/378 vs **terminal** for 478), the staleness `audit` sub-command, and the `--readme-variant lab` GitHub Classroom variant.
 
 ---

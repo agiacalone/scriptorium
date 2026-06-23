@@ -9,6 +9,15 @@ const FIXTURE = 'examples/file_systems_abstraction_lecture_main.md';
 const handout = (r, o) => generateCornellHandout(r, o).handoutTex;
 
 describe('cornell-handout generator', () => {
+  it('handout and key both begin with \\DocumentMetadata{testphase} (tagged, ADA Title II)', () => {
+    const r = parse({ path: FIXTURE });
+    const { handoutTex, keyTex } = generateCornellHandout(r);
+    for (const tex of [handoutTex, keyTex]) {
+      expect(tex.trimStart()).toMatch(/^\\DocumentMetadata\{[^}]*testphase/);
+      expect(tex.indexOf('\\DocumentMetadata')).toBeLessThan(tex.indexOf('\\documentclass'));
+    }
+  });
+
   it('emits a valid LaTeX document', () => {
     const r = parse({ path: FIXTURE });
     expect(validate(r).ok).toBe(true);

@@ -29,6 +29,9 @@ const { compileLatex } = require('./lib/tex-helpers.js');
 const { projectColorPairs } = require('./lib/a11y/project-palette.js');
 const { auditColorPairs } = require('./lib/a11y/palette-audit.js');
 const { formatReport } = require('./lib/a11y/verify.js');
+const { projectColorIndependence } = require('./lib/a11y/color-independence.js');
+const { auditAltText } = require('./lib/a11y/alt-text.js');
+const { stageFromPalette, aggregate, writeReport } = require('./lib/a11y/report.js');
 
 const ARTIFACTS = new Set([
   'all',
@@ -163,17 +166,45 @@ function reportWarnings(label, warnings, log) {
   }
 }
 
-// ADA Title II / WCAG contrast gate (audit chain, issue #5). Runs once per
-// invocation as a project-level invariant: the student/instructor palette must
-// meet the target before any artifact is generated. Returns true if it passes.
-function runA11yGate(log, { level }) {
-  const report = auditColorPairs(projectColorPairs(), { level });
+// ADA Title II / WCAG audit gate (audit chain, issues #5, #7). Runs once per
+// invocation before any artifact is generated, and writes a machine-readable
+// a11y-report.json into the output dir. Stages:
+//   - palette-contrast — student/instructor palette meets the WCAG target.
+//   - color-independence — every callout/section emitter pairs color with a textual cue.
+//   - alt-text — every visual in the parsed source carries [alt::] (collects all misses).
+// Returns true if every stage passes.
+function runA11yGate(log, { level, parsed, outDir }) {
+  const paletteAudit = auditColorPairs(projectColorPairs(), { level });
+  const stages = [
+    stageFromPalette('palette-contrast', paletteAudit),
+    projectColorIndependence(),
+  ];
+  if (parsed) stages.push(auditAltText(parsed));
+  const report = aggregate(stages);
+
+  if (outDir) {
+    try {
+      writeReport(report, path.join(outDir, 'a11y-report.json'));
+    } catch (err) {
+      log.warn(`  ! a11y: could not write a11y-report.json: ${err.message}`);
+    }
+  }
+
   if (report.ok) {
-    log.info(`✓ a11y: palette meets WCAG ${level} (${report.passed} pairs)`);
+    log.info(`✓ a11y: ${stages.length} stages pass (WCAG ${level}, ${paletteAudit.passed} palette pairs)`);
     return true;
   }
-  process.stderr.write(`error: ADA/WCAG ${level} contrast gate failed:\n`);
-  process.stderr.write(formatReport(report, { level }) + '\n');
+
+  process.stderr.write(`error: ADA/WCAG ${level} audit failed:\n`);
+  for (const s of stages) {
+    if (s.ok) continue;
+    if (s.stage === 'palette-contrast') {
+      process.stderr.write(formatReport(paletteAudit, { level }) + '\n');
+    } else {
+      process.stderr.write(`  stage ${s.stage}:\n`);
+      for (const r of s.rows) if (!r.pass) process.stderr.write(`    ✗ ${r.name}: ${r.detail}\n`);
+    }
+  }
   return false;
 }
 
@@ -320,7 +351,7 @@ async function runMain(args) {
       process.stderr.write(`error: --a11y-level must be AA or AAA, got ${args.flags['a11y-level']}\n`);
       process.exit(2);
     }
-    if (!runA11yGate(log, { level })) process.exit(1);
+    if (!runA11yGate(log, { level, parsed, outDir })) process.exit(1);
   }
 
   const slug = topicSlugFromMain(mainPath);

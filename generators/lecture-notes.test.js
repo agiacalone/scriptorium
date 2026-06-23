@@ -5,6 +5,14 @@ import { generateLectureNotes } from './lecture-notes.js';
 const FIXTURE = 'examples/file_systems_abstraction_lecture_main.md';
 
 describe('lecture-notes generator', () => {
+  it('begins with \\DocumentMetadata{testphase} so the PDF is tagged (ADA Title II)', () => {
+    const r = parse({ path: FIXTURE });
+    const tex = generateLectureNotes(r);
+    // \DocumentMetadata MUST be the very first token, before \documentclass.
+    expect(tex.trimStart()).toMatch(/^\\DocumentMetadata\{[^}]*testphase/);
+    expect(tex.indexOf('\\DocumentMetadata')).toBeLessThan(tex.indexOf('\\documentclass'));
+  });
+
   it('emits a valid LaTeX document with section per Roman-numeral section', () => {
     const r = parse({ path: FIXTURE });
     const v = validate(r); expect(v.ok).toBe(true);
