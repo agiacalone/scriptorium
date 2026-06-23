@@ -71,6 +71,51 @@ known toolchain-limited rule (see §5) doesn't block routine lecture generation 
 it blocking for CI and release gates. The decision logic is the pure, unit-tested
 `evaluatePdfUaGate(stage, {strict})`.
 
+### 2.1 The pipeline is a compiler — and the validator is its type-checker
+
+The most accurate mental model: Scriptorium is a **compiler** and the accessibility chain is its
+**type system**. This isn't a loose metaphor — the structure maps one-to-one, and it's the right frame
+for reasoning about where compliance succeeds, where it fails, and *whose problem* a failure is.
+
+| Compiler concept | Scriptorium |
+|---|---|
+| Source | `_lecture_main.md` (tagged Markdown) |
+| Front-end / AST | `parser/` → items, sections, tables, fields |
+| Codegen → IR | `generators/` → LaTeX |
+| Backend / assembler | `pdflatex` → the PDF (the "binary") |
+| Type annotations / debug symbols | the **structure tree** — `StructTreeRoot`, `/H1…/H6`, `/TH`, `/Artifact`. *Tagging is type-annotating content.* |
+| Static analyzer / type-checker | **veraPDF** parses the PDF and runs the PDF/UA-1 clause-set against it |
+| Type errors with source locations | "failed checks" — the `mcid`/content-path is a stack-trace-style locator |
+| `-Werror` | `--strict-a11y` |
+| Warnings vs errors | advisory vs blocking |
+| Diagnostics output | `a11y-report.json` |
+| Semantic analysis pass | **Tier 1** source lints (before codegen) |
+| Post-link verification | **Tier 2** PDF/UA check (after codegen) |
+
+**Where the analogy is exact:** accessibility tagging *is* a type system for documents. A screen reader
+is a consumer that relies on those types (`/TH` ⇒ "announce as a column header") exactly as a runtime
+relies on a memory layout. veraPDF is the checker that proves the annotations are present and
+well-formed before the artifact ships.
+
+**Where it frays (three ways, increasingly important):**
+
+1. **The spec is prose, not a formal type system.** PDF/UA-1 is natural-language ISO 14289-1 clauses
+   interpreted by the validator — so veraPDF, PAC, and Acrobat Preflight disagree on edge cases, the way
+   two compilers implement an under-specified language differently. We standardize on **veraPDF** as our
+   reference checker so "compliant" has one unambiguous meaning in this project.
+2. **It checks preconditions, not adequacy.** veraPDF verifies that alt text *exists* and a reading order
+   *is defined* — it cannot verify the alt text is *meaningful* or the order is *correct*. It catches
+   "missing annotation," never "wrong annotation" (no Rice's-theorem escape). Semantic correctness still
+   requires human review; the source lints (alt-text required, color never alone) push as much of that
+   upstream as a machine can.
+3. **It's a post-hoc verifier on the artifact, decoupled from the producing backend — and this is the
+   crux of our one residual failure.** The producer (`pdflatex`'s tagging) and the checker (veraPDF) are
+   separate tools, so errors surface at the "linked binary" stage, not inline at the source. Our residual
+   clause-7.1-t3 failure (§5) is **missing annotations the codegen backend did not emit** — the analog of
+   a compiler backend that drops debug symbols for certain constructs. The verifier correctly flags the
+   missing symbols, but the fix lives in the backend (LaTeX's tagging engine), which we do not control and
+   cannot patch from the source. That is why editing the materials cannot resolve it — see §5.
+
 ---
 
 ## 3. How the documents are made accessible (generation)
@@ -134,18 +179,33 @@ Measured with veraPDF 1.30.2 on the canonical example (`file_systems_abstraction
 | Cornell handout key | ✅ | ⚠️ 1 rule | clause 7.1 t3 |
 
 **The single residual rule — PDF/UA-1 clause 7.1 t3 ("content shall be marked as Artifact or tagged as
-real content"):** isolated (via veraPDF spikes) to two sources of *untagged decorative content*:
-1. **Table border rules** — `\hline`, `|` column separators, and even booktabs `\toprule/\midrule/\bottomrule`
-   all emit content the current LaTeX tagging engine does not auto-artifact. Only a fully borderless table
-   passes.
-2. **`mdframed` background fills** — the navy section-header strips in lecture notes.
+real content").** In compiler terms (§2.1): the codegen backend (`pdflatex`'s tagging) does **not emit
+complete type annotations** for these documents — some content reaches the PDF neither tagged as real
+content nor marked `/Artifact`. The verifier correctly flags the missing annotations; the gap is in the
+backend, not the source.
 
-This is a **documented limitation of the LaTeX tagging toolchain** (TeX Live 2026, `testphase=phase-III`),
-not a defect in Scriptorium's process. Manual `\tagmcbegin{artifact}` wrapping was tried and made it
-*worse*. The two resolution paths are (a) a design regression (drop the borders/fills, sacrificing the
-color-as-navigation-cue design) or (b) adopt the engine's rule/frame artifacting when it ships in a later
-LaTeX tagging phase. The advisory gate surfaces the gap on every build; we **re-test on each TeX Live
-upgrade** and flip CI to strict-blocking once it clears. See the roadmap (P2) for the watch.
+**This was experimentally confirmed to be a backend gap, not a styling choice (2026-06-23).** The
+intuitive hypothesis was that decorative fills/rules were the culprit — colored table borders (`\hline`,
+`|`, even booktabs rules) and `mdframed` background fills do each emit untagged content in isolation. But
+a full de-styling experiment **disproved that as the whole story**: a variant with *every* fill and rule
+removed (the generated `.tex` contained zero `\cellcolor`/`\rowcolor`/`\hline`/`\vrule`) **still failed the
+same rule on the same ~100 content items.** So:
+
+- Editing the **source** (the lecture materials) does not fix it — we removed the decorations and the
+  failure count did not move. This is the decisive evidence that it is a codegen-gap, not an authoring
+  defect.
+- The de-styling would also have been a genuine pedagogical regression (it removes the Cornell handout's
+  yellow fill-in cells — the "write here" affordance — its cue-column tint, and the at-a-glance section
+  banners) **while buying zero compliance.** It was therefore abandoned; the rich, navigable design is
+  retained.
+
+**Status: toolchain-limited, watched.** Root cause is the maturity of LaTeX's automatic tagging
+(`testphase=phase-III` on TeX Live 2026) — rule/frame artifacting and complete content tagging for
+box-and-table-heavy layouts are expected in a later tagging phase. The **advisory gate surfaces the gap on
+every build** (never a silent pass), the simpler artifacts (quiz, quiz key) are already fully compliant,
+and we **re-run veraPDF on each TeX Live upgrade**, flipping CI to strict-blocking once the backend closes
+the gap. See the roadmap (P2). A future *source-side* mitigation that would also help: emitting fill-in
+fields as accessible AcroForm `\TextField`s rather than colored cells.
 
 **Audit posture:** the chain *measures* compliance on every build, blocks any regression to untagged,
 records per-artifact status as evidence, and is explicit about the one known gap and its upstream cause.

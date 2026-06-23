@@ -54,7 +54,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   regulatory scope (Title II, DOJ 2024 rule, WCAG 2.1 AA → PDF/UA-1), the two-tier audit-chain architecture
   (source lints + compiled-PDF validation), the blocking model, the tagging mechanism, the evidence
   (`a11y-report.json` + veraPDF), an honest per-artifact status table, and the maintenance process.
-  Linked from the README; the residual clause-7.1-t3 limitation is documented with its upstream cause.
+  **§2.1 frames the whole pipeline as a compiler** (source→AST→codegen→backend; tagging = type annotations;
+  veraPDF = the type-checker; `--strict-a11y` = `-Werror`) and characterizes the residual clause-7.1-t3
+  rule as a **codegen-gap in the LaTeX tagging backend** — experimentally confirmed (a full de-styling left
+  the failure unchanged at ~100 untagged items), so it is not fixable from the source. `CLAUDE.md` +
+  `AGENTS.md` gained an agent-facing accessibility-gate section; the README links the record.
 - **PDF/UA-1 validation gate — the audit chain now checks the *compiled* PDFs (ADA Title II, issue #7 Phase 3).**
   New `lib/a11y/pdfua.js` stage runs after generation over every produced PDF, in two tiers: the
   **veraPDF** CLI (PDF/UA-1 profile — the authoritative deep check of tags, reading order, heading

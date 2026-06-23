@@ -12,7 +12,7 @@ run directly by a human via its CLI. This file documents the AI-operation path.
 | `node exam-reading-list-cli.js --exam-name <name> --slug <slug> --course <course> --term <term> --mains <paths>` | Build a multi-topic per-exam reading-list study guide |
 | `npm run check` | Syntax-validate all generator source files |
 | `npm test` | Run the full vitest suite (parser, validators, all generators) |
-| `npm run verify:a11y` | WCAG contrast audit of the palettes |
+| `npm run verify:a11y` | Standalone WCAG palette-contrast audit (one stage of the full a11y chain — see "Accessibility gate" below) |
 
 ## Dual-Operability Contract
 
@@ -24,11 +24,34 @@ Every action the skill performs maps to a CLI command:
 | Generate a single artifact | `node generate.js --main <path> --artifact <name>` |
 | Override output dir | `node generate.js --main <path> --out ./out` |
 | Skip pdflatex | `node generate.js --main <path> --no-pdf` |
+| Strict accessibility (CI) | `node generate.js --main <path> --strict-a11y` |
 | Build exam reading-list | `node exam-reading-list-cli.js ...` |
 | Staleness audit | `node generate.js audit --main <path> --current-term <term>` |
 
 A human can replicate any skill-driven workflow by running these CLI commands directly.
 No skill invocation is required for any operation.
+
+**Output layout:** without `--out`, artifacts land in a **`products/` subdirectory beside the source**
+(not the topic root); pdflatex intermediates are swept after each successful compile, leaving only `.tex`
++ `.pdf`. `products/` is gitignored.
+
+## Accessibility gate (ADA Title II / WCAG → PDF/UA-1)
+
+Every `generate.js` run enforces a two-tier accessibility gate. An agent must understand it because it can
+**abort generation**:
+
+- **Tier 1 — source lints (blocking, pre-generation):** palette contrast (WCAG 1.4.3), color-independence
+  (1.4.1), and alt-text-present (1.1.1) run on the parsed source. Any failure aborts before any artifact is
+  written. Fix the source — never reach for `--skip-a11y` on materials you intend to distribute.
+- **Tier 2 — compiled-PDF validation (post-generation):** every PDF is tagged via
+  `\DocumentMetadata{...pdfstandard=ua-1,...}`; a **veraPDF PDF/UA-1** deep check runs when `verapdf` is on
+  `PATH` (else a `pdfinfo` smoke-check — never a silent pass). **Untagged PDFs fail the build**; PDF/UA-1
+  non-compliance is **advisory** by default and **blocking** under `--strict-a11y`.
+- A machine-readable `a11y-report.json` is written to the output dir each run.
+
+The authoritative record — architecture, the compiler/type-checker framing, blocking model, honest status,
+and the one toolchain-limited residual rule — is **`docs/ACCESSIBILITY.md`**. Read it before touching
+anything under `lib/a11y/`, the preambles, or the table/section emitters.
 
 ## Kept vs. Disposable Artifacts
 
