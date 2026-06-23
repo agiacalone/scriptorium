@@ -1,0 +1,91 @@
+name: a11y
+
+# ADA Title II / WCAG audit chain over the COMPILED example artifacts (issue #7,
+# roadmap Phase 4). Distinct from test.yml (hermetic vitest, no LaTeX): this job
+# needs a tagging-capable TeX Live (≥2024) + veraPDF to compile real PDFs and run
+# the PDF/UA-1 deep check.
+#
+# Triggers are conservative on purpose — TeX Live install + PDF compiles are heavy,
+# and the org has a GitHub Actions minute budget. Runs only on PRs that touch the
+# generator/a11y surface, and on manual dispatch.
+#
+# NOTE (2026-06-23): this workflow has NOT yet had a live validation run — the
+# TeX Live package list and the veraPDF headless install may need a tweak on first
+# green. The veraPDF console install is driven by the same deterministic input
+# sequence verified locally.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'generators/**'
+      - 'parser/**'
+      - 'generate.js'
+      - 'examples/**'
+      - '.github/workflows/a11y.yml'
+
+jobs:
+  pdf-ua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund --no-progress
+
+      # Tagging-capable TeX Live (LaTeX 2024-06+ ships the auto-tagging that
+      # \DocumentMetadata{testphase=...} needs; verified locally on TL2026).
+      - name: Install TeX Live (tagging-capable)
+        uses: teatimeguest/setup-texlive-action@v3
+        with:
+          version: 2025
+          packages: >-
+            latex-bin latexmk geometry fontspec lm xcolor colortbl mdframed
+            booktabs tabularx enumitem fancyhdr url hyperref listings array
+            needspace parskip tagpdf pdfmanagement-testphase
+
+      # Java for veraPDF.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # veraPDF (PDF/UA-1 deep check). Headless IzPack console install driven by
+      # the deterministic answer sequence (hello → default path → confirm →
+      # GUI=N CLI=Y Docs=N Samples=N → install), then put on PATH.
+      - name: Install veraPDF
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/verapdf.zip https://software.verapdf.org/releases/verapdf-installer.zip
+          unzip -q -o /tmp/verapdf.zip -d /tmp/verapdf-dl
+          JAR=$(find /tmp/verapdf-dl -name 'verapdf-izpack-installer-*.jar' | head -1)
+          printf '1\n\nO\n1\nN\nY\nN\nN\n1\n1\n\n1\n' | java -jar "$JAR" -console
+          echo "$HOME/verapdf" >> "$GITHUB_PATH"
+
+      - name: Verify toolchain
+        run: |
+          pdflatex --version | head -1
+          verapdf --version | head -1
+
+      # Generate the example with the DEFAULT gate. The tagged-presence invariant
+      # is blocking — an untagged PDF fails the build here (regression guard).
+      - name: Generate + tagged-presence gate
+        run: node generate.js --main examples/file_systems_abstraction_lecture_main.md
+
+      # PDF/UA-1 deep check as INFORMATIONAL until the last clause-7.1-t3 rule
+      # (untagged table-rule / mdframed-fill decorations) is resolved upstream.
+      # Flip to blocking by removing continue-on-error once full compliance lands.
+      - name: PDF/UA-1 deep check (informational)
+        continue-on-error: true
+        run: node generate.js --main examples/file_systems_abstraction_lecture_main.md --strict-a11y
+
+      - name: Upload a11y report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-report
+          path: examples/products/a11y-report.json
+          if-no-files-found: warn
