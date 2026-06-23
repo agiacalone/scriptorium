@@ -50,6 +50,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   actually executable. Covered by `generators/mark-used.test.js`.
 
 ### Added
+- **`docs/ACCESSIBILITY.md` — audit-grade ADA Title II / WCAG / PDF/UA-1 compliance record.** Documents the
+  regulatory scope (Title II, DOJ 2024 rule, WCAG 2.1 AA → PDF/UA-1), the two-tier audit-chain architecture
+  (source lints + compiled-PDF validation), the blocking model, the tagging mechanism, the evidence
+  (`a11y-report.json` + veraPDF), an honest per-artifact status table, and the maintenance process.
+  Linked from the README; the residual clause-7.1-t3 limitation is documented with its upstream cause.
 - **PDF/UA-1 validation gate — the audit chain now checks the *compiled* PDFs (ADA Title II, issue #7 Phase 3).**
   New `lib/a11y/pdfua.js` stage runs after generation over every produced PDF, in two tiers: the
   **veraPDF** CLI (PDF/UA-1 profile — the authoritative deep check of tags, reading order, heading
