@@ -28,7 +28,7 @@ const require = createRequire(import.meta.url);
 const { compileLatex } = require('./lib/tex-helpers.js');
 const { resolveOutDir } = require('./lib/out-dir.js');
 const { cleanupLatexAux } = require('./lib/latex-clean.js');
-const { runPdfUaStage } = require('./lib/a11y/pdfua.js');
+const { runPdfUaStage, evaluatePdfUaGate } = require('./lib/a11y/pdfua.js');
 const { projectColorPairs } = require('./lib/a11y/project-palette.js');
 const { auditColorPairs } = require('./lib/a11y/palette-audit.js');
 const { formatReport } = require('./lib/a11y/verify.js');
@@ -77,6 +77,8 @@ Flags:
   --silent                  suppress info-level logs
   --a11y-level <AA|AAA>     WCAG contrast target for the gate; default AA
   --skip-a11y               bypass the ADA/WCAG contrast gate (not recommended)
+  --strict-a11y             fail the build on PDF/UA-1 non-compliance, not just
+                            untagged PDFs (needs veraPDF; intended for CI)
 
 Semester filtering (applied to all role-based item lookups):
   --semester <term>         loose: keep #used/<term> + items with NO #used/* tag
@@ -114,6 +116,8 @@ function parseArgs(argv) {
       args.flags.noPdf = true;
     } else if (a === '--skip-a11y') {
       args.flags.skipA11y = true;
+    } else if (a === '--strict-a11y') {
+      args.flags.strictA11y = true;
     } else if (a === '--silent') {
       args.flags.silent = true;
     } else if (a === '-h' || a === '--help') {
@@ -217,13 +221,14 @@ function runA11yGate(log, { level, parsed, outDir }) {
 // real tagged structure, via veraPDF (deep) or a pdfinfo Tagged smoke-check
 // (fallback). Appends a `pdf-ua` stage to a11y-report.json and gates the build.
 // Returns true when every produced PDF passes.
-function runPdfUaGate(log, { outDir }) {
+function runPdfUaGate(log, { outDir, strict }) {
   const pdfPaths = fs.existsSync(outDir)
     ? fs.readdirSync(outDir).filter((f) => f.endsWith('.pdf')).map((f) => path.join(outDir, f))
     : [];
   if (pdfPaths.length === 0) return true; // --no-pdf, or nothing compiled
 
   const stage = runPdfUaStage(pdfPaths);
+  const gate = evaluatePdfUaGate(stage, { strict });
 
   // Merge into the report the pre-generation gate already wrote.
   const reportPath = path.join(outDir, 'a11y-report.json');
@@ -239,24 +244,28 @@ function runPdfUaGate(log, { outDir }) {
     log.warn(`  ! pdf-ua: could not update a11y-report.json: ${err.message}`);
   }
 
-  if (stage.ok) {
-    const hasVera = stage.rows.some((r) => r.ua1);
+  // Logging: tagging summary + the veraPDF advisory (always shown, even when it blocks under --strict).
+  const hasVera = stage.rows.some((r) => r.ua1);
+  const untagged = stage.rows.filter((r) => !r.pass);
+  const nonCompliant = stage.rows.filter((r) => r.ua1 && !r.ua1.compliant);
+  if (untagged.length === 0) {
     if (hasVera) {
-      const bad = stage.rows.filter((r) => r.ua1 && !r.ua1.compliant);
       log.info(`✓ pdf-ua: ${stage.rows.length} PDF(s) tagged (veraPDF deep check ran)`);
-      if (bad.length > 0) {
-        // Advisory, not blocking: full PDF/UA-1 compliance is remediation work.
-        log.warn(`  ! pdf-ua advisory: ${bad.length}/${stage.rows.length} PDF(s) not yet PDF/UA-1 compliant (see a11y-report.json):`);
-        for (const r of bad) log.warn(`    · ${r.name}: ${r.ua1.detail}`);
+      if (nonCompliant.length > 0) {
+        const label = strict ? 'pdf-ua STRICT' : 'pdf-ua advisory';
+        log.warn(`  ! ${label}: ${nonCompliant.length}/${stage.rows.length} PDF(s) not PDF/UA-1 compliant (see a11y-report.json):`);
+        for (const r of nonCompliant) log.warn(`    · ${r.name}: ${r.ua1.detail}`);
       }
     } else {
       log.info(`✓ pdf-ua: ${stage.rows.length} PDF(s) tagged (pdfinfo smoke-check — install veraPDF for the PDF/UA-1 deep check)`);
     }
-    return true;
   }
-  // Hard fail: an untagged PDF has no accessibility tree at all.
-  process.stderr.write('error: PDF/UA tag verification failed — untagged PDF(s):\n');
-  for (const r of stage.rows) if (!r.pass) process.stderr.write(`    ✗ ${r.name}: ${r.detail}\n`);
+
+  if (gate.ok) return true;
+
+  // Block: untagged always; PDF/UA-1 non-compliance only under --strict-a11y.
+  process.stderr.write(`error: PDF/UA gate failed${strict ? ' (--strict-a11y)' : ''}:\n`);
+  for (const b of gate.blocking) process.stderr.write(`    ✗ ${b.name}: ${b.reason}\n`);
   return false;
 }
 
@@ -452,7 +461,7 @@ async function runMain(args) {
     }
   }
 
-  if (!runPdfUaGate(log, { outDir })) process.exit(1);
+  if (!runPdfUaGate(log, { outDir, strict: !!args.flags.strictA11y })) process.exit(1);
 
   log.info('Done.');
 }
