@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **`docs/grading-handoff.md` — signpost to where grading lives.** Scriptorium authors
+  content and has no grader; two of its artifacts (the Classroom README lab/programming
+  variant, and the question bank) hand off to the grading side of the suite. The new doc
+  points content authors to where the grading info lives — lectern's `docs/grading-types.md`
+  (pick a grading type) and `docs/assignment-authoring.md`, and oracle's `docs/grading-model.md`
+  (engine mechanics) — plus `reg-exam-build`/`reg-exam-verify` for exams from the bank. Linked
+  from the README suite section and the SKILL.md exam/README callouts.
+
 ### Fixed
 - **PDF/UA-1 metadata remediation (ADA Title II, issue #7).** Both shared preambles now declare
   `\DocumentMetadata{…pdfstandard=ua-1,pdfversion=1.7,…}` (writes the PDF/UA-1 identifier into XMP and
