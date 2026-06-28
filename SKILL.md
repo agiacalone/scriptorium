@@ -80,6 +80,12 @@ PDF via `pdflatex`. Slides emit Slidev markdown (`.md`) — no PDF export. The
 > serials, emits a register) and verify with `reg-exam-verify`. See
 > [[notes/exam-tex-doctrine]]. This skill no longer generates exams.
 
+> **Grading lives in the other suite repos.** When you author a Classroom README
+> (lab/programming variant) or a question bank, see [`docs/grading-handoff.md`](docs/grading-handoff.md)
+> — a signpost to where the grading info lives: lectern's `docs/grading-types.md`
+> (pick a grading type) and `docs/assignment-authoring.md`, oracle's `docs/grading-model.md`
+> (engine mechanics). Scriptorium authors content; it has no grader.
+
 **Default (generate everything — single session):**
 > "Generate lecture materials for [TOPIC] in [COURSE]. Cover: [KEY CONCEPTS]. Case studies: [EXAMPLES]. ~[N] minutes."
 

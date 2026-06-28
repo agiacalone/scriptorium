@@ -30,7 +30,8 @@ ways: driven by an AI agent (Claude Code skill) *or* run directly by a human via
 | **[Scriptorium](https://github.com/agiacalone/scriptorium)** — the workshop | Course **content** — lecture notes, Cornell handouts, quizzes, slides, question banks. | `agiacalone/scriptorium` |
 | **[Oracle](https://github.com/agiacalone/oracle)** *(private)* — the secret box | **Grading** — a verify-by-proof oracle service + a sandboxed code-runner (gradebox). | `agiacalone/oracle` *(private — licensed)* |
 
-*You are here: **Scriptorium**.*
+*You are here: **Scriptorium**.* Authored a lab or a question bank and wondering how it gets graded?
+See [`docs/grading-handoff.md`](docs/grading-handoff.md) — a signpost to where the grading info lives.
 
 > **Suite licensing.** Lectern and Scriptorium are open source ([MIT](LICENSE)). **Oracle** — the grading engine — is **licensed, not open**: a **source-available license** (PolyForm Strict 1.0.0), private repo, source provided on licensing. Accredited **educational institutions can license it for free**; commercial and other use is by arrangement. Either way, **contact the author for a license** — [@agiacalone](https://github.com/agiacalone).
 
