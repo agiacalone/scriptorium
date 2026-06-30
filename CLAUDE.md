@@ -149,10 +149,12 @@ The `.docx` and `.pptx` formats are no longer emitted. Printed handouts (lecture
 notes, Cornell handout, quiz) render to PDF via `pdflatex`; the slide deck is Slidev
 Markdown. Exams are built by lectern, not here.
 
-## Required npm/pip Dependencies (user installs once)
+## Required npm/pip Dependencies (installed once, at the vault PARENT when in-vault)
+
+⚠️ **NEVER run `npm install` inside an Obsidian vault.** When this skill is checked out inside a vault, an in-vault `node_modules/` crash-loops Obsidian sync (inotify watch exhaustion). Install **one level above the vault** at `documents/obsidian/node_modules`; Node's upward module resolution finds them automatically, so you normally install nothing. If a (re)install is truly needed, target the parent:
 
 ```bash
-npm install
+npm install --prefix "$(cd <vault>/.. && pwd)"   # vault PARENT, never the skill dir
 ```
 
 `pptxgenjs` and `docx` are no longer dependencies. The slides generator emits Slidev

@@ -243,6 +243,11 @@ Then, once per clone:
 npm install
 ```
 
+> ⚠️ **If this checkout lives inside an Obsidian vault** (e.g. `vault/skills/…`), do **not**
+> run `npm install` here — an in-vault `node_modules/` crash-loops Obsidian sync. Install at
+> the vault parent instead: `npm install --prefix "$(cd <vault>/.. && pwd)"`. Node resolves the
+> parent `node_modules` upward automatically, so usually you install nothing.
+
 ---
 
 ## Repository layout
