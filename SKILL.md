@@ -138,9 +138,10 @@ Workflow:
 node generate.js --main <vault>/classes/<course>/<topic>_lecture_main.md --out .
 ```
 
-**Dependencies** (install once per skill checkout):
+**Dependencies** — ⚠️ **NEVER run `npm install` inside the vault.** When this skill is checked out *inside* an Obsidian vault (e.g. `vault/skills/…`), an in-vault `node_modules/` (thousands of files) blows the inotify watch limit and crash-loops Obsidian sync. Install **once at the vault parent** (`documents/obsidian/node_modules`, one level *above* `<vault>/`). Node's upward module resolution finds them from the skill dir automatically — so normally you install **nothing**. If you ever must (re)install, target the parent explicitly:
 ```bash
-npm install
+# install to the vault PARENT — never the skill dir:
+npm install --prefix "$(cd <vault>/.. && pwd)"
 ```
 
 A LaTeX toolchain with `pdflatex` is required for the lecture-notes, Cornell, and
