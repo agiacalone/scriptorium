@@ -10,12 +10,17 @@
 //     --out <dir> \
 //     --mains <main1.md>,<main2.md>[,...]
 //
+//   --format reference     two-column reference sheet (generators/exam-reference-sheet.js)
+//   --readings-json '[{"title":…,"url":…,"note":…}]'   assigned readings callout
+//   --retired-citation <regex>   citations naming a dropped textbook become "Lecture notes"
+//
 // Writes <out>/<slug>_reading_list.md and prints the path.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { parse } from './parser/index.js';
 import { generateExamReadingList } from './generators/exam-reading-list.js';
+import { generateExamReferenceSheet } from './generators/exam-reference-sheet.js';
 
 function parseArgs(argv) {
   const f = {};
@@ -58,7 +63,13 @@ function main() {
     topics.push({ parsed: parse({ path: p }) });
   }
 
-  const md = generateExamReadingList(topics, { examName, course, term, slug, textbook, citationKey, note, noteTitle });
+  const format = f.format && f.format !== true ? f.format : 'reading-list';
+  const readings = f['readings-json'] && f['readings-json'] !== true ? JSON.parse(f['readings-json']) : [];
+  const retiredCitation = f['retired-citation'] && f['retired-citation'] !== true ? f['retired-citation'] : '';
+  const coverageNote = f['coverage-note'] && f['coverage-note'] !== true ? f['coverage-note'] : '';
+  const md = format === 'reference'
+    ? generateExamReferenceSheet(topics, { examName, course, term, textbook, note, noteTitle, readings, retiredCitation, coverageNote })
+    : generateExamReadingList(topics, { examName, course, term, slug, textbook, citationKey, note, noteTitle });
   fs.mkdirSync(out, { recursive: true });
   const outPath = path.join(out, `${slug}_reading_list.md`);
   fs.writeFileSync(outPath, md, 'utf8');
