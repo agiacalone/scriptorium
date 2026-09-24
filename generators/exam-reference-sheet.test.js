@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { blankOut, renderCitation } from './exam-reference-sheet.js';
+import { blankOut, renderCitation, generateExamReferenceSheet } from './exam-reference-sheet.js';
 
 describe('blankOut', () => {
   it('empties every blank and never prints an answer', () => {
@@ -23,5 +23,14 @@ describe('renderCitation', () => {
   });
   it('leaves unknown sources as plain text', () => {
     expect(renderCitation('Shannon 1949').md).toBe('Shannon 1949');
+  });
+});
+
+describe('generateExamReferenceSheet', () => {
+  it('prints the exam date and when/where line', () => {
+    const parsed = { frontmatter: { title: 'T' }, byRole: new Map(), bySection: new Map(), body: '' };
+    const md = generateExamReferenceSheet([{ parsed }], { examDate: '2026-09-29', examWhen: 'Tue Sep 29, in class' });
+    expect(md).toContain('exam-date: 2026-09-29');
+    expect(md).toContain('**Exam:** Tue Sep 29, in class');
   });
 });

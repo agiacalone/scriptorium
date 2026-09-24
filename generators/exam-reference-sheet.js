@@ -160,6 +160,7 @@ export function generateExamReferenceSheet(topics, opts = {}) {
   out.push(`title: "${course ? course + ' — ' : ''}${examName} Reference Sheet"`);
   if (course) out.push(`course: ${course}`);
   if (term) out.push(`term: ${term}`);
+  if (opts.examDate) out.push(`exam-date: ${opts.examDate}`);
   out.push('type: reading-list');
   out.push('tags:');
   out.push('  - reading-list');
@@ -172,6 +173,7 @@ export function generateExamReferenceSheet(topics, opts = {}) {
   out.push('');
   out.push(`# ${course ? course + ' · ' : ''}${examName} Reference Sheet`);
   out.push('');
+  if (opts.examWhen) out.push(`**Exam:** ${opts.examWhen}`, '');
   out.push(`**Covers:** ${titles.join(' · ')}${opts.coverageNote ? ` — ${opts.coverageNote}` : ''}`);
   out.push('');
   out.push('> [!info] How to use this sheet');
