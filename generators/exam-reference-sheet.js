@@ -174,6 +174,11 @@ export function generateExamReferenceSheet(topics, opts = {}) {
   out.push(`# ${course ? course + ' · ' : ''}${examName} Reference Sheet`);
   out.push('');
   if (opts.examWhen) out.push(`**Exam:** ${opts.examWhen}`, '');
+  if ((opts.bring || []).length) {
+    out.push('> [!important] What to bring to the exam', '>');
+    for (const b of opts.bring) out.push(`> - ${b}`);
+    out.push('');
+  }
   out.push(`**Covers:** ${titles.join(' · ')}${opts.coverageNote ? ` — ${opts.coverageNote}` : ''}`);
   out.push('');
   out.push('> [!info] How to use this sheet');

@@ -34,3 +34,14 @@ describe('generateExamReferenceSheet', () => {
     expect(md).toContain('**Exam:** Tue Sep 29, in class');
   });
 });
+
+describe('what to bring', () => {
+  const parsed = { frontmatter: { title: 'T' }, byRole: new Map(), bySection: new Map(), body: '' };
+  it('prints the list as a callout under the Exam line', () => {
+    const md = generateExamReferenceSheet([{ parsed }], { examWhen: 'Tue', bring: ['Student ID', 'Pencil'] });
+    expect(md).toMatch(/\*\*Exam:\*\* Tue\n\n> \[!important\] What to bring to the exam\n>\n> - Student ID\n> - Pencil/);
+  });
+  it('omits the callout when the list is empty', () => {
+    expect(generateExamReferenceSheet([{ parsed }], {})).not.toContain('What to bring');
+  });
+});

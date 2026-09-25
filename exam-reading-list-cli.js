@@ -14,6 +14,7 @@
 //   --readings-json '[{"title":…,"url":…,"note":…}]'   assigned readings callout
 //   --retired-citation <regex>   citations naming a dropped textbook become "Lecture notes"
 //   --exam-date YYYY-MM-DD  --exam-when "<text>"   exam date (frontmatter) and when/where line
+//   --bring-json '["…", …]'   "What to bring to the exam" callout under the Exam line
 //
 // Writes <out>/<slug>_reading_list.md and prints the path.
 
@@ -70,8 +71,9 @@ function main() {
   const coverageNote = f['coverage-note'] && f['coverage-note'] !== true ? f['coverage-note'] : '';
   const examDate = f['exam-date'] && f['exam-date'] !== true ? f['exam-date'] : '';
   const examWhen = f['exam-when'] && f['exam-when'] !== true ? f['exam-when'] : '';
+  const bring = f['bring-json'] && f['bring-json'] !== true ? JSON.parse(f['bring-json']) : [];
   const md = format === 'reference'
-    ? generateExamReferenceSheet(topics, { examName, course, term, textbook, note, noteTitle, readings, retiredCitation, coverageNote, examDate, examWhen })
+    ? generateExamReferenceSheet(topics, { examName, course, term, textbook, note, noteTitle, readings, retiredCitation, coverageNote, examDate, examWhen, bring })
     : generateExamReadingList(topics, { examName, course, term, slug, textbook, citationKey, note, noteTitle });
   fs.mkdirSync(out, { recursive: true });
   const outPath = path.join(out, `${slug}_reading_list.md`);
