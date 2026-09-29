@@ -62,7 +62,23 @@ export function renderCitation(raw, opts = {}) {
   // Strip a trailing section number so "Saltzer & Schroeder 1975 §3" and
   // "Saltzer & Schroeder 1975" collapse into one source.
   const base = c.replace(/\s*[,;]?\s*(§|p\.|pp\.)\s*[\d.–-]+$/, '').trim();
-  return { key: base.toLowerCase(), md: base };
+  const url = opts.citationUrls && opts.citationUrls.get(base.toLowerCase());
+  return { key: base.toLowerCase(), md: url ? `[${base}](${url})` : base };
+}
+
+// A lecture's frontmatter may map citations the patterns above do not know to a
+// URL, so any source can be linked on the sheet:
+//   citation-urls:
+//     - citation: 'Stevens et al., "SHAttered," 2017'
+//       url: https://shattered.io
+// Matching is on the whole citation, ignoring case, after the section-number strip.
+export function citationUrlMap(frontmatter) {
+  const map = new Map();
+  const fm = (frontmatter && frontmatter.raw) || {};   // the parser keeps unknown keys under .raw
+  for (const e of fm['citation-urls'] || []) {
+    if (e && e.citation && e.url) map.set(String(e.citation).trim().toLowerCase(), String(e.url).trim());
+  }
+  return map;
 }
 
 // Fill each _______ with the next answer, in bold.
@@ -112,7 +128,8 @@ function sourcesLine(items, opts) {
   return list.length ? list.join(' · ') : 'Lecture notes';
 }
 
-function topicBlock(parsed, opts) {
+function topicBlock(parsed, baseOpts) {
+  const opts = { ...baseOpts, citationUrls: citationUrlMap(parsed.frontmatter) };
   const title = (parsed.frontmatter || {}).title || 'Topic';
   const out = [`# ${title}`, ''];
 

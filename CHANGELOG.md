@@ -9,6 +9,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Reference sheets can link any source.** A lecture main may carry a `citation-urls:`
+  list in its frontmatter mapping a citation to a URL, and the exam reference sheet
+  links that citation wherever it appears. Before, only RFCs, NIST SPs, FIPS
+  publications and OSTEP chapters were linked, so a case study such as SHAttered
+  printed as plain text and students had no way to reach it. Found reviewing the
+  CECS 378 Fa26 Exam 1 sheet, which also listed SHAttered twice under two
+  spellings; the fix there is one citation string in the lecture main.
 - **`docs/grading-handoff.md` — signpost to where grading lives.** Scriptorium authors
   content and has no grader; two of its artifacts (the Classroom README lab/programming
   variant, and the question bank) hand off to the grading side of the suite. The new doc
