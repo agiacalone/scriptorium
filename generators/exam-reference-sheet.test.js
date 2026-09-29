@@ -45,3 +45,30 @@ describe('what to bring', () => {
     expect(generateExamReferenceSheet([{ parsed }], {})).not.toContain('What to bring');
   });
 });
+
+describe('citation-urls', () => {
+  const item = (citation) => ({ text: 'A _______ fact.', tags: new Set(['blank']), fields: new Map([['citation', citation]]) });
+  const urls = new Map([['stevens et al., "shattered," 2017', 'https://shattered.io']]);
+
+  it('links a citation the frontmatter maps to a URL', () => {
+    expect(renderCitation('Stevens et al., "SHAttered," 2017', { citationUrls: urls }).md)
+      .toBe('[Stevens et al., "SHAttered," 2017](https://shattered.io)');
+  });
+  it('leaves an unmapped citation as plain text', () => {
+    expect(renderCitation('Schneier 1999', { citationUrls: urls }).md).toBe('Schneier 1999');
+  });
+  it('reads the map from the lecture frontmatter and lists the source once', () => {
+    const parsed = {
+      frontmatter: {
+        title: 'Encryption',
+        raw: { 'citation-urls': [{ citation: 'Stevens et al., "SHAttered," 2017', url: 'https://shattered.io' }] },
+      },
+      byRole: new Map(),
+      bySection: new Map([['V', [item('Stevens et al., "SHAttered," 2017'), item('Stevens et al., "SHAttered," 2017; FIPS 180-4')]]]),
+      body: '## V. Cryptographic Hash Functions\n',
+    };
+    const md = generateExamReferenceSheet([{ parsed }], {});
+    const read = md.split('\n').find((l) => l.startsWith('*Read:*'));
+    expect(read).toBe('*Read:* [Stevens et al., "SHAttered," 2017](https://shattered.io) · [FIPS 180-4](https://doi.org/10.6028/NIST.FIPS.180-4)');
+  });
+});

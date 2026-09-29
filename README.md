@@ -220,6 +220,17 @@ Pass several comma-separated `--mains` to fold multiple topics into one guide
 (rendered as Part A, Part B, …). Optional `--textbook`, `--citation-key`, `--note`,
 and `--note-title` override the source-block defaults (Tanenbaum & Bos for OS courses).
 
+The exam **reference sheet** (`--format reference`) links RFCs, NIST SPs, FIPS
+publications and OSTEP chapters on its own. To link any other source, map its
+citation to a URL in the lecture main's frontmatter. The citation must match the
+`[citation::]` text exactly (case aside), so give each source one spelling:
+
+```yaml
+citation-urls:
+  - citation: 'Stevens et al., "SHAttered," 2017'
+    url: https://shattered.io
+```
+
 ---
 
 ## Installing prerequisites
