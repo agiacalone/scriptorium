@@ -16,6 +16,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `\url{}`, so they break across lines. A Wayback Machine link, whose address contains a
   second `http://`, stays one link. Found rebuilding the CECS 326 memory-management
   handout after its references moved to OSTEP.
+- **Lecture notes that produced no PDF.** The lecture-notes and quiz preamble drew its
+  boxes with mdframed, which breaks the PDF tag structure, and the briefing layout passed
+  `itemsep`, `leftmargin` and `parsep` inline to `itemize`, which the tagged list code
+  rejects. Each box and list raised LaTeX errors. A short lecture still compiled, but a
+  long one reached TeX's 100-error limit and produced no PDF; the CECS 326 I/O notes
+  never had one. Boxes are now tcolorbox, with the same colours and spacing, and the inline
+  list options are reduced to `topsep` (the rest come from `\setlist`). Every valid lecture's
+  notes now compile with no LaTeX errors, and veraPDF's PDF/UA failures on a typical file
+  fall from about 4,700 untagged items to about 65. The remainder is one check per box
+  (tagged text inside the frame's artifact), from tcolorbox's own tagging. `≪` and `≫`
+  are also mapped, since the I/O notes use `≪`.
 
 ### Added
 - **Reference sheets can link any source.** A lecture main may carry a `citation-urls:`
