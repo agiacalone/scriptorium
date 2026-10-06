@@ -254,6 +254,8 @@ Then, once per clone:
 npm install
 ```
 
+Never run `npm install` inside an Obsidian vault: the thousands of directories in `node_modules/` exhaust the inotify watch limit and crash-loop Obsidian sync. Keep the checkout outside the vault and install there.
+
 ---
 
 ## Repository layout

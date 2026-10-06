@@ -143,6 +143,8 @@ node generate.js --main <vault>/classes/<course>/<topic>_lecture_main.md --out .
 npm install
 ```
 
+Never run `npm install` inside an Obsidian vault: the thousands of directories in `node_modules/` exhaust the inotify watch limit and crash-loop Obsidian sync. Keep the checkout outside the vault and install there.
+
 A LaTeX toolchain with `pdflatex` is required for the lecture-notes, Cornell, and
 quiz PDFs. Required TeX packages: `texlive-needspace`, `texlive-ec`,
 `texlive-tabulary`, `texlive-mdframed`, `texlive-collection-fontsrecommended`
