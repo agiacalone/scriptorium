@@ -155,6 +155,8 @@ Markdown. Exams are built by lectern, not here.
 npm install
 ```
 
+Never run `npm install` inside an Obsidian vault: the thousands of directories in `node_modules/` exhaust the inotify watch limit and crash-loop Obsidian sync. Keep the checkout outside the vault and install there.
+
 `pptxgenjs` and `docx` are no longer dependencies. The slides generator emits Slidev
 Markdown; the LaTeX artifacts (lecture notes, Cornell handout, quiz) compile to PDF
 via `pdflatex`.
