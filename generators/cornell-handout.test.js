@@ -195,3 +195,18 @@ type: lecture-main
     expect(handoutTex).toContain('Hard link');
   });
 });
+
+describe('cornell-handout — links', () => {
+  it('prints a wikilink as its alias and a Markdown link as \\href', async () => {
+    const { texEscape, texEscapeWithUrls } = await import('../lib/tex-helpers.js');
+    expect(texEscape('see [[inotify_case|the inotify case study]]')).toBe('see the inotify case study');
+    expect(texEscape('see [[notes/foo_bar]]')).toBe('see foo\\_bar');
+    expect(texEscapeWithUrls('[OSTEP](https://pages.cs.wisc.edu/~remzi/OSTEP/) ch. 13'))
+      .toBe('\\href{https://pages.cs.wisc.edu/~remzi/OSTEP/}{OSTEP} ch. 13');
+    expect(texEscape('[x](https://a.org/b_c#d%20e)')).toBe('\\href{https://a.org/b_c\\#d\\%20e}{x}');
+    expect(texEscapeWithUrls('[RSA](https://web.archive.org/web/2011/http://blogs.rsa.com/x/) — post'))
+      .toBe('\\href{https://web.archive.org/web/2011/http://blogs.rsa.com/x/}{RSA} — post');
+    expect(texEscapeWithUrls('CISA — https://www.cisa.gov/stopransomware'))
+      .toBe('CISA — \\url{https://www.cisa.gov/stopransomware}');
+  });
+});

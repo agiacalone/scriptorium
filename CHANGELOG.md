@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- **Links in LaTeX handouts.** A Markdown link (`[OSTEP](https://…)`) printed as
+  raw Markdown, and a vault wikilink (`[[note|alias]]`) leaked into a Cornell case-study
+  row. A Markdown link now renders as `\href`, and a wikilink prints as its alias, or
+  as the note's name when it has none. The Cornell reference list also wraps bare URLs in
+  `\url{}`, so they break across lines. A Wayback Machine link, whose address contains a
+  second `http://`, stays one link. Found rebuilding the CECS 326 memory-management
+  handout after its references moved to OSTEP.
+
 ### Added
 - **Reference sheets can link any source.** A lecture main may carry a `citation-urls:`
   list in its frontmatter mapping a citation to a URL, and the exam reference sheet
