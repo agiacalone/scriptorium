@@ -13,6 +13,18 @@ describe('lecture-notes generator', () => {
     expect(tex.indexOf('\\DocumentMetadata')).toBeLessThan(tex.indexOf('\\documentclass'));
   });
 
+  it('uses only tagging-safe boxes and list options', () => {
+    // mdframed breaks the tag structure, and the tagged itemize rejects inline
+    // itemsep/leftmargin/parsep/noitemsep. Each error counts toward TeX's
+    // 100-error limit, so a long lecture produced no PDF at all.
+    const tex = generateLectureNotes(parse({ path: FIXTURE }));
+    expect(tex).not.toMatch(/\\usepackage\{mdframed\}|\\begin\{mdframed\}|\\newmdenv/);
+    expect(tex).toContain('\\usepackage{tcolorbox}');
+    for (const m of tex.matchAll(/\\begin\{(?:itemize|enumerate)\}\[([^\]]*)\]/g)) {
+      expect(m[1]).not.toMatch(/noitemsep|itemsep|leftmargin|parsep/);
+    }
+  });
+
   it('emits a valid LaTeX document with section per Roman-numeral section', () => {
     const r = parse({ path: FIXTURE });
     const v = validate(r); expect(v.ok).toBe(true);
