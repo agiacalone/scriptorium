@@ -9,6 +9,15 @@ const FIXTURE = 'examples/file_systems_abstraction_lecture_main.md';
 const handout = (r, o) => generateCornellHandout(r, o).handoutTex;
 
 describe('cornell-handout generator', () => {
+  it('uses tagging-safe boxes, and a banner cannot be separated from its table', () => {
+    // mdframed breaks the tag structure. tcolorbox's after-skip glue is a legal
+    // page break, so the banner must end in \\nobreak or it strands at a page foot.
+    const { handoutTex } = generateCornellHandout(parse({ path: FIXTURE }));
+    expect(handoutTex).not.toMatch(/\\usepackage\{mdframed\}|\\begin\{mdframed\}|\\newmdenv/);
+    expect(handoutTex).toContain('\\usepackage{tcolorbox}');
+    expect(handoutTex).toMatch(/\\newtcolorbox\{cornellbannerenv\}[\s\S]*?after=\{\\par\\nobreak/);
+  });
+
   it('handout and key both begin with \\DocumentMetadata{testphase} (tagged, ADA Title II)', () => {
     const r = parse({ path: FIXTURE });
     const { handoutTex, keyTex } = generateCornellHandout(r);

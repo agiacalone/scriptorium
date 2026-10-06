@@ -27,6 +27,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   fall from about 4,700 untagged items to about 65. The remainder is one check per box
   (tagged text inside the frame's artifact), from tcolorbox's own tagging. `≪` and `≫`
   are also mapped, since the I/O notes use `≪`.
+- **Cornell handouts: the same tagging errors.** The Cornell preamble used mdframed for
+  the objectives, vocabulary, KEY, section-banner and summary boxes, which raised 200–310
+  LaTeX errors per handout. They are now tcolorbox, with the same colours, rules and
+  spacing; every handout compiles with no LaTeX errors, and veraPDF's untagged-content
+  failures fall from about 3,000 per handout to 100–260. Two layout fixes came with it.
+  The section banner now ends in `\nobreak`, because tcolorbox's after-skip is a legal
+  page break and stranded banners at the foot of a page. Its `\needspace` drops from 14
+  lines to 4, because the banner is already glued to its unbreakable table and the
+  larger reservation pushed whole sections to the next page. Page counts match the old
+  handouts or are one shorter. `‖`, `⊇`, `⊃`, `∪`, `∩` and `∅` are now mapped; the
+  access-control handout silently dropped `⊇`.
 
 ### Added
 - **Reference sheets can link any source.** A lecture main may carry a `citation-urls:`
