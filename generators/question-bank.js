@@ -87,7 +87,15 @@ export function generateQuestionBank(parsed, options = {}) {
   const generated = new Date().toISOString();
   const sourcePath = (fm.raw && fm.raw['source-path']) || (parsed.sourcePath ?? '');
 
-  const out = [];
+  // Frontmatter keeps the bank findable by tag in the vault. load_bank (lectern)
+  // reads only fenced yaml blocks, so this block does not affect parsing.
+  const courseTag = fm.course ? fm.course.toLowerCase().replace(/\s+/g, '-') : null;
+  const tags = ['teaching', courseTag, 'question-bank', 'internal', 'private'].filter(Boolean);
+  const out = ['---', 'type: question-bank'];
+  if (fm.course) out.push(`course: ${fm.course}`);
+  if (options.topicSlug) out.push(`topic: ${options.topicSlug}`);
+  out.push(`tags: [${tags.join(', ')}]`, 'visibility: private', 'icon: LiListChecks',
+    'iconColor: var(--text-normal)', '---', '');
   out.push(`# ${title} Question Bank`);
   out.push('');
   if (courseLabel) out.push(`Course: ${courseLabel}`);

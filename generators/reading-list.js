@@ -57,9 +57,10 @@ function buildTags(fm, topicSlug) {
     if (t === 'lecture-main' || t === 'reading-list') continue;
     out.add(t);
   }
-  if (fm.course) out.add(fm.course.toLowerCase().replace(/\s+/g, ''));
+  // Course tags are kebab-case (`cecs-326`) per the vault doctrine. The topic is
+  // a `topic:` field, not a tag: a per-topic tag is used exactly once.
+  if (fm.course) out.add(fm.course.toLowerCase().replace(/\s+/g, '-'));
   out.add('reading-list');
-  if (topicSlug) out.add(topicSlug);
   return [...out];
 }
 
@@ -71,6 +72,7 @@ function frontmatterBlock(fm, topicSlug) {
   const lines = ['---'];
   lines.push(`title: ${title} — Reading List`);
   if (course) lines.push(`course: ${course}`);
+  if (topicSlug) lines.push(`topic: ${topicSlug}`);
   lines.push('type: reading-list-companion');
   lines.push(`created: ${now}`);
   lines.push(`updated: ${now}`);

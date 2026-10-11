@@ -292,7 +292,7 @@ async function runArtifact({ artifact, parsed, slug, outDir, log, opts }) {
       return;
     }
     case 'bank': {
-      const md = generateQuestionBank(parsed, { ...filterOpts });
+      const md = generateQuestionBank(parsed, { ...filterOpts, topicSlug: slug });
       const out = path.join(outDir, `${slug}_question_bank.md`);
       writeText(out, md);
       log.info(`✓ question-bank → ${path.basename(out)}`);
