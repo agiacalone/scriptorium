@@ -130,14 +130,17 @@ function renderMCItem(q) {
 
   if (t === 'mc') {
     lines.push(`  \\item ${texEscape(stem)}`);
-    const opts = (q.children || []).map((c) => {
-      // Strip leading "A. " / "B. " prefixes — \alph* enumerate generates them.
+    const opts = (q.children || []).map((c, i) => {
+      // Strip leading "A. " / "B. " prefixes; the label is written explicitly below.
       const text = String(c.text || '').replace(/^[A-Z][.)]\s*/, '');
-      return `      \\item ${texEscape(text)}`;
+      return `      \\item[(${String.fromCharCode(97 + i)})] ${texEscape(text)}`;
     }).join('\n');
-    lines.push('    \\begin{enumerate}[label=(\\alph*)]');
+    // Explicit labels, not enumerate[label=(\alph*)]: under the PDF-tagging
+    // testphase, \alph* in a nested list reads the OUTER counter, so every
+    // option of question N printed the same letter.
+    lines.push('    \\begin{itemize}');
     if (opts) lines.push(opts);
-    lines.push('    \\end{enumerate}');
+    lines.push('    \\end{itemize}');
     const ans = qAnswer(q).toString().trim().toLowerCase().replace(/[().]/g, '');
     lines.push(`    \\ifkey \\textbf{Answer:} ${texEscape(ans || '?')} \\fi`);
   } else if (t === 'tf') {

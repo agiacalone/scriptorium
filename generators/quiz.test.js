@@ -65,10 +65,12 @@ term: sp26
     expect(result.quizTex).toMatch(/Short Answer/);
   });
 
-  it('renders mc options as nested enumerate', () => {
+  it('renders mc options with explicit (a)–(d) labels', () => {
     const r = parse({ path: FIXTURE });
     const result = generateQuiz(r);
-    expect(result.quizTex).toMatch(/\\begin\{enumerate\}\[label=\(\\alph\*\)\]/);
+    // \alph* reads the outer counter under the tagging testphase, so labels are explicit.
+    expect(result.quizTex).not.toMatch(/label=\(\\alph\*\)/);
+    expect(result.quizTex).toMatch(/\\item\[\(a\)\][\s\S]*?\\item\[\(b\)\][\s\S]*?\\item\[\(c\)\][\s\S]*?\\item\[\(d\)\]/);
   });
 
   it('key version contains answer letters or expected-key text', () => {
