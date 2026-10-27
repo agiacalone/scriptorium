@@ -36,6 +36,7 @@ priors, but the formats split into two tiers:
   - `<topic>_cornell_handout.pdf` (student) + `<topic>_cornell_handout_key.pdf` (instructor answer key — never distribute)
   - `<topic>_study_questions.md` (student review)
   - `<topic>_quiz.pdf` + `<topic>_quiz_key.pdf`
+  - `<topic>_fact_sheet.pdf` (student reference, one page per case study)
   - `<topic>_slides.md` (Slidev) — render/export with the `slides:dev` / `slides:build` scripts
   - `README.md` (GitHub Classroom)
   - (exams are no longer produced here — built by lectern's `reg-exam-build` from the
@@ -142,6 +143,7 @@ assembly draws from, and the per-exam *reading-list* study guide.
 | `[topic]_quiz.pdf` + `[topic]_quiz_key.pdf` | Pop quiz | 5 questions (~10 min), MC+short answer, separate key PDF; `.tex` retained |
 | `[topic]_question_bank.md` | Question bank | ~50 tagged questions (mc/tf/code/fib/sa · ★/★★/★★★ · subtopic); source of truth for exam assembly (in lectern) |
 | `[topic]_reading_list.md` *or* `[scope]_reading_list.md` | Reading-list companion | Hybrid scaffold paired 1:1 (or 1:N) with Cornell handout(s). Generator emits cue-table rows inside `<!-- generator: cue-tables -->` … `<!-- /generator -->`; manual content (curated primary sources, References, instructor notes) outside the fence is preserved on regen. |
+| `[topic]_fact_sheet.pdf` | Case-study fact sheet | One student-facing page per case, from `#fact [case::]` items under an unnumbered heading; facts table + grouped bullets + Sources; skipped when there are no facts; `.tex` retained |
 | `README.md` | GitHub Classroom README | Rigid boilerplate — copy structure exactly |
 | `[topic]_slides.md` | Slide deck (Slidev) | 14–18 slides; render live or export via the `slides:dev` / `slides:build` scripts. *(Slide styling is mid-migration — the Beamer-era palette notes below are being reworked.)* |
 

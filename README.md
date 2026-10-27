@@ -72,9 +72,10 @@ Run against the bundled sample (`examples/file_systems_abstraction_lecture_main.
 | Slide deck | `slides` | `.md` (Slidev) | no |
 | GitHub Classroom README | `readme` | `.md` | no |
 | Reading-list companion | `reading-list` | `.md` | no |
+| Case-study fact sheet | `fact-sheet` | `.tex` → `.pdf` | yes |
 | Consistency audit | `audit` | console report | no |
 
-Printed artifacts (`lecture-notes`, `cornell`, `quiz`) compile to PDF with
+Printed artifacts (`lecture-notes`, `cornell`, `quiz`, `fact-sheet`) compile to PDF with
 `pdflatex`. Pass `--no-pdf` to emit the `.tex` and skip compilation if you don't have
 a LaTeX toolchain installed. The slide deck is Slidev Markdown — preview it live with
 `npm run slides:dev` or export with `npm run slides:build`.

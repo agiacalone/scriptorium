@@ -17,6 +17,7 @@ enforce the invariants below as hard errors and block compilation.
 - `#slide` — a slide block. **Requires `[layout:: …]`** from the 11-layout enum.
 - `#diagram` — a figure or partial diagram. **Requires `[alt:: …]`** (ADA Title II).
 - `#example`, `#case-study`, `#activity`, `#discussion`
+- `#fact` — one entry on a case study's fact sheet. **Requires `[case:: …]`** (hard error if missing). See § *Fact Sheet*.
 
 **Scope tags** (which lecture section the block belongs to):
 - `#section/I`, `#section/II`, … through `#section/XII`
@@ -649,6 +650,64 @@ whenever the `.md` updates.
   numbers are stable across editions; pages drift. Page ranges are an optional
   affordance, not the primary identifier.
 - **Don't generate this artifact programmatically.** It is hand-authored.
+
+---
+
+## Fact Sheet (.pdf)
+
+A one-page reference card for each named case study in a lecture: a botnet, a
+breach, an outage. It is student-facing and withholds nothing. The Cornell
+handout teaches the case; the fact sheet is what a student keeps afterwards:
+what happened, when, how big, who, and what to do about it. The first one was
+Mirai, in CECS 378's Denial of Service lecture.
+
+**File:** `[topic]_fact_sheet.pdf` (`.tex` retained). One page per case, in the
+order each case first appears in the source. Skipped, with no file written, when
+the lecture has no `#fact` items.
+
+### Source schema
+
+Keep facts under an **unnumbered** heading, one per case, so section-walking
+artifacts never pick them up (a `#fact` inside a numbered section is a warning):
+
+```markdown
+## Fact sheet: Mirai
+
+- August 2016 #fact [case:: Mirai] [label:: Discovered]
+- Telnet on ports 23 and 2323 #fact [case:: Mirai] [label:: Infection] [citation:: CISA TA16-288A]
+- Disconnect the device. #fact #steps [case:: Mirai] [group:: Removing an infection]
+- Reboot it while it is offline. #fact [case:: Mirai] [group:: Removing an infection]
+```
+
+| Field or tag | Effect |
+|---|---|
+| `[case:: Name]` | **Required.** Which case's sheet the fact belongs to; also the sheet's title. |
+| `[label:: Text]` | The fact is a row in the facts table: label, then the item text. |
+| `[group:: Heading]` | Without a label, the fact is a bullet under that heading (default *Key points*). |
+| `#steps` | On any item in a group, numbers the whole group. |
+| `[citation:: …]` | Collected into the sheet's *Sources* line, linked like the exam reference sheet (OSTEP, RFC, NIST, FIPS, or the frontmatter `citation-urls:` map). |
+| `#draft` | Left off the sheet. |
+
+A `#case-study` item carrying the same `[case::]` supplies the sheet's opening
+paragraph; the first such item wins. The `--semester` / `--strict-semester`
+filters apply.
+
+### Layout
+
+- 11pt, 0.75in margins, US Letter; aim for one page per case.
+- Header block: case name in navy, *Fact sheet*, course.
+- Facts table: two columns (*Fact* | *Detail*), navy header row tagged as
+  header cells for PDF/UA, labels bold navy.
+- Groups follow the table in source order; *Sources* closes the page.
+
+### Content rules
+
+- Every figure on the sheet needs a source in the lecture or on the sheet. Prefer
+  an official advisory (CISA, NIST, a vendor bulletin) and peer-reviewed
+  measurement over press coverage.
+- Where sources disagree, give the range and its source ("1.1 to 1.5 Tbps"), and
+  mark an unconfirmed figure as an estimate.
+- Short rows. A row that wraps past two lines belongs in a group.
 
 ---
 
