@@ -66,6 +66,7 @@ These fields live in the YAML frontmatter and `#meta` section of the
 | Pop quiz | `[topic]_quiz.pdf` + `[topic]_quiz_key.pdf` (`.tex` retained) | 5-question in-class quiz with separate instructor answer-key PDF |
 | Question bank | `[topic]_question_bank.md` | ~50 tagged questions (mc/tf/code/fib/sa), scoped to full topic (2–4 sessions) |
 | Reading-list companion | `[topic]_reading_list.md` (single topic) or `[scope]_reading_list.md` (multi-topic, e.g. `final_third_reading_list.md`) | Hybrid scaffold paired 1:1 (or 1:N) with Cornell handout(s); the generator emits a `<!-- generator: cue-tables -->` … `<!-- /generator -->` fence with cue-to-source rows; manual content outside the fence is preserved on regen. Can also serve as a pre-exam review deliverable. |
+| Fact sheet | `[topic]_fact_sheet.pdf` (`.tex` retained) | One student-facing reference page per case study, from `#fact` items under an unnumbered `## Fact sheet: <case>` heading. Withholds nothing (unlike the Cornell handout). Skipped when the lecture has no facts. |
 | GitHub README | `README.md` | GitHub Classroom assignment (reading or lab/programming variant) |
 | Slide deck | `[topic]_slides.md` (Slidev markdown) | 14–18 slides. Theme auto-selected from `course:` frontmatter: **blueprint** (CECS 326, 378) or **terminal** (CECS 478); default blueprint. Present live via `npx slidev [topic]_slides.md` — no PDF export (slides are a presentation artifact, not a distributed document). |
 
@@ -181,6 +182,7 @@ generators/
   slides.js              # → [topic]_slides.md  (Slidev markdown)
   question-bank.js       # → [topic]_question_bank.md
   reading-list.js        # → [topic]_reading_list.md   (fenced scaffold; manual content preserved)
+  fact-sheet.js          # → [topic]_fact_sheet.tex + .pdf (one page per #fact case)
 archive/
   spec-driven-2025/      # historical: init-spec.js + lecture-spec.json (do not author new specs)
 ```
@@ -198,6 +200,7 @@ node generate.js --main /mnt/es1/anthony/obsidian/vault/classes/326/file_systems
 node generate.js --main path/to/topic_lecture_main.md --artifact slides
 node generate.js --main path/to/topic_lecture_main.md --artifact bank
 node generate.js --main path/to/topic_lecture_main.md --artifact reading-list
+node generate.js --main path/to/topic_lecture_main.md --artifact fact-sheet
 
 # Override output directory and skip pdflatex
 node generate.js --main path/to/topic_lecture_main.md --out ./out --no-pdf
@@ -334,6 +337,7 @@ cryptography_quiz_key.pdf
 cryptography_question_bank.md
 cryptography_slides.md
 cryptography_reading_list.md
+cryptography_fact_sheet.pdf          # one page per case study
 README.md
 
 # Reading-list companion (multi-topic — covers a unit or final third):
@@ -356,6 +360,7 @@ rules. In particular, check it for:
 - quiz timing, answer-key format, and question constraints
 - question-bank schema, numbering, dedupe, and tagging
 - reading-list companion frontmatter, callouts, cue-table format, and References discipline
+- fact-sheet source schema (`#fact`, `[case::]`, `[label::]`, `[group::]`, `#steps`) and content rules
 - GitHub README boilerplate and Markdown rules
 - Slidev theme palettes (blueprint / terminal), layout mapping, `<Schematic>` and `<EventChain>` components, and standard deck structure
 - ADA Title II compliance: `[alt::]` requirement on `#diagram` and diagram slide layouts; color-and-glyph pairing on Cornell sections; tagged-PDF preference

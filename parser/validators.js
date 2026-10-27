@@ -118,6 +118,27 @@ export function validate(parsed) {
       }
     }
 
+    // ── #fact rules ──────────────────────────────────────────
+    if (it.tags.has('fact')) {
+      if (!String(it.fields.get('case') || '').trim()) {
+        pushIssue(errors, it, '#fact without [case:: …] — every fact must name the case study its fact sheet belongs to');
+      }
+      if (it.fields.has('label') && it.fields.has('group')) {
+        warnings.push({
+          message: '#fact with both [label::] and [group::] — it renders as a table row; [group::] is ignored',
+          line: it.sourceLine,
+          text: it.text,
+        });
+      }
+      if (it.section != null) {
+        warnings.push({
+          message: `#fact inside lecture section ${it.section} — keep facts under an unnumbered heading (e.g. "## Fact sheet: <case>") so section-walking artifacts never pick them up`,
+          line: it.sourceLine,
+          text: it.text,
+        });
+      }
+    }
+
     // ── #diagram rules ───────────────────────────────────────
     if (it.tags.has('diagram') && !it.tags.has('slide')) {
       if (!it.fields.has('alt')) {

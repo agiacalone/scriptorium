@@ -8,6 +8,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- **Fact sheets for case studies (`--artifact fact-sheet`).** A one-page,
+  student-facing reference card per named case study (a botnet, a breach, an
+  outage): a facts table, grouped bullets such as removal and prevention steps,
+  and a linked *Sources* line. The Cornell handout teaches a case and withholds
+  part of it; the fact sheet is what a student keeps afterwards. Facts are a new
+  role tag in the lecture main, `#fact [case:: Name]`, with `[label::]` for a table
+  row or `[group::]` for a bullet (`#steps` numbers a group). A `#case-study` with
+  the same `[case::]` supplies the opening paragraph. A fact without `[case::]` is
+  a hard error, and one inside a numbered section is a warning, since facts live
+  under an unnumbered `## Fact sheet: <case>` heading that section-walking artifacts
+  never read. The sheet is skipped, with no file written, when a lecture has no
+  facts, so `all` is unchanged for every existing lecture. First built for Mirai in
+  CECS 378's Denial of Service lecture, from the CISA alert TA16-288A. The PDF is
+  tagged; veraPDF's PDF/UA-1 check reports one advisory rule (7.1-3), from the shared
+  preamble rather than the table, like the lecture notes' remaining finding.
+
 ### Fixed
 - **Links in LaTeX handouts.** A Markdown link (`[OSTEP](https://…)`) printed as
   raw Markdown, and a vault wikilink (`[[note|alias]]`) leaked into a Cornell case-study

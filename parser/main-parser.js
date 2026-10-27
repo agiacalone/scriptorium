@@ -5,7 +5,7 @@ import MarkdownIt from 'markdown-it';
 const ROLE_TAGS = new Set([
   'concept', 'vocab', 'blank', 'key-callout', 'case-study', 'diagram',
   'self-quiz', 'summary', 'discussion', 'activity', 'question',
-  'objective', 'slide',
+  'objective', 'slide', 'fact',
 ]);
 
 const TAG_RE = /(?:^|\s)#([A-Za-z][A-Za-z0-9_/-]*)/g;

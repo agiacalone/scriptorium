@@ -21,6 +21,7 @@ import { generateStudyQuestions } from './generators/study-questions.js';
 import { generateQuiz } from './generators/quiz.js';
 import { generateReadingList } from './generators/reading-list.js';
 import { generateReadme } from './generators/readme.js';
+import { generateFactSheet } from './generators/fact-sheet.js';
 import { generateAudit } from './generators/audit.js';
 import { markUsedTags } from './generators/mark-used.js';
 
@@ -46,6 +47,7 @@ const ARTIFACTS = new Set([
   'quiz',
   'reading-list',
   'readme',
+  'fact-sheet',
 ]);
 
 const ARTIFACT_ALIASES = {
@@ -67,6 +69,7 @@ Artifacts (--artifact):
   quiz
   reading-list
   readme
+  fact-sheet    one page per case study, from #fact items (skipped when there are none)
 
 Flags:
   --main <path>             path to <topic>_lecture_main.md
@@ -340,6 +343,18 @@ async function runArtifact({ artifact, parsed, slug, outDir, log, opts }) {
       log.info(`✓ readme (${variant}) → ${path.basename(out)}`);
       return;
     }
+    case 'fact-sheet': {
+      const { tex, cases } = generateFactSheet(parsed, { ...filterOpts });
+      if (!tex) {
+        log.info('· fact-sheet skipped (no #fact items)');
+        return;
+      }
+      const out = path.join(outDir, `${slug}_fact_sheet.tex`);
+      writeText(out, tex);
+      log.info(`✓ fact-sheet → ${path.basename(out)} (${cases.join(', ')})`);
+      maybeCompile(out, outDir, log, opts.noPdf);
+      return;
+    }
     default:
       throw new Error(`unhandled artifact: ${artifact}`);
   }
@@ -354,6 +369,7 @@ const ALL_ARTIFACTS = [
   'quiz',
   'reading-list',
   'readme',
+  'fact-sheet',
 ];
 
 async function runMain(args) {
